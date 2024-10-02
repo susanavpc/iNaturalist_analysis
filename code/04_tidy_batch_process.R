@@ -1,6 +1,7 @@
 # Batch process to transform RData files into tidy CSV files and combine them 
 # 
 # Input files: 
+# - observation RData files
 # - get_vars_functions.R
 # - tidy_data_script.R
 # - selected_variables.csv
@@ -57,5 +58,14 @@ combined_data$taxon_id <- taxon_swap$new_taxon_id[
 combined_data <- combined_data %>% 
         left_join(.,fungi_taxa, by="taxon_id")
 
-# Save final dataset ----
-write_csv(combined_data,"data/tidy_data/tidy_data.csv")
+# Save dataset, includes casual ----
+write_csv(combined_data,"data/tidy_data/combined_data.csv")
+
+# Save subset dataset - only verifiable observations, excludes casual ----
+verifiable_data <- combined_data %>% 
+        filter(quality_grade != "casual")
+
+write_csv(verifiable_data,"data/tidy_data/tidy_data_verifiable.csv")
+
+
+
