@@ -9,13 +9,13 @@ library(sf)
 library(tidyverse)
 
 points <- read_csv("data/tidy_data/combined_data.csv") %>% 
-  select(id, lat, long) %>% 
-  filter(quality_grade != "casual")
+  filter(quality_grade != "casual") %>% 
+  select(id, lat, long)
 
 gadm_sf_euro <- st_read("data/gadm_euro_countries.shp")
 
 # Make spatial points ----
-points_sf <- sf::st_as_sf(points, coords = c("long", "lat"), crs = 4326)
+points_sf <- st_as_sf(points, coords = c("long", "lat"), crs = 4326)
 
 rm(points)
 gc()
@@ -36,6 +36,10 @@ gc()
 
 sf_int_list <- list()
 
+if (!dir.exists("temporary/intersections")) {
+  dir.create("temporary/intersections")
+}
+
 for (i in seq_along(points_list)) {
         chunk <- points_list[[i]]
         
@@ -55,18 +59,20 @@ for (i in seq_along(points_list)) {
 csv_files <- list.files(pattern = "temporary/intersections/int.*\\.csv")
 
 combined_countries <- csv_files %>%
-        lapply(read.csv) %>%  
-        bind_rows()    
+  lapply(read_csv) %>%  
+  bind_rows() %>% 
+  rename(country=COUNTRY)
 
 write_csv(combined_countries, "temporary/combined_countries.csv")
 
 
 # Apply nearest feature for NAs ----
 
-na_countries <- combined_countries %>% 
-        filter(is.na(country))
+na_points <- combined_countries %>% 
+  filter(is.na(country)) %>% 
+  select(-country)
 
-na_points_sf <- st_as_sf(points, coords = c("long", "lat"), crs = 4326)
+na_points_sf <- st_as_sf(na_points, coords = c("long", "lat"), crs = 4326)
 
 # sf function to get nearest feature
 nn = st_nearest_feature(na_points_sf, gadm_sf_euro)
@@ -75,33 +81,33 @@ nn = st_nearest_feature(na_points_sf, gadm_sf_euro)
 nn_df <- data.frame(country_id = nn)
 
 # bind back to points
-points_nn <- bind_cols(points, nn_df)
+points_nn <- bind_cols(na_points, nn_df)
 
 # remove cols not needed
 gadm_countries <- gadm_sf_euro %>% 
-        select(COUNTRY) %>%
-        st_drop_geometry()
+  select(COUNTRY) %>%
+  st_drop_geometry()
 
 # add index needed to join
 gadm_countries$id <- 1:nrow(gadm_countries)
 
 # join to get country name
-na_countries <- points_nn %>%
-        left_join(gadm_countries, by = c("country_id" = "id")) %>%
-        select(-country_id, -country) %>%
-        rename(new_country = COUNTRY) 
+new_countries <- points_nn %>%
+  left_join(gadm_countries, by = c("country_id" = "id")) %>%
+  select(-country_id) %>%
+  rename(new_country = COUNTRY) 
 
 # Join and coalesce countries ----
-country_data <- left_join(country_data, na_countries, by = "id")
+country_data <- left_join(combined_countries, new_countries, by = "id")
 
 country_data <- country_data %>% 
-        mutate(country = coalesce(country, na_country)) 
+  mutate(country = coalesce(country, new_country)) 
 
 # confirm there are no more NAs
 view(filter(country_data, is.na(country))) 
 
 country_data <- country_data %>%
-        select(-na_country)
+  select(-new_country)
 
 # Save final combined result (optional) ----
 write_csv(country_data, "country_data.csv")
