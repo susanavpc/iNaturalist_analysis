@@ -61,11 +61,6 @@ combined_data <- combined_data %>%
 # Save dataset, includes casual ----
 write_csv(combined_data,"data/tidy_data/combined_data.csv")
 
-# Save subset dataset - only verifiable observations, excludes casual ----
-verifiable_data <- combined_data %>% 
-        filter(quality_grade != "casual")
-
-write_csv(verifiable_data,"data/tidy_data/tidy_data_verifiable.csv")
 
 
 

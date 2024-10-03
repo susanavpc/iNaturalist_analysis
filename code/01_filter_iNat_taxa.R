@@ -3,7 +3,7 @@
 library(readr)
 library(dplyr)
 
-taxa <- read_csv("data/iNaturalist_taxa.csv")
+taxa <- read_csv("data/taxa.csv")
 fungi_taxa <- taxa %>% 
         filter(kingdom == "Fungi") %>%
         rename(taxon_id = id) %>% # prevents confusion with observation IDs in other files
