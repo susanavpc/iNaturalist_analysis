@@ -1,24 +1,24 @@
-var_name;description
-id;observation id number
-uri;inaturalist link
-quality_grade;research grade vs needs id vs casual
-observed_on;date of observation (only date no time)
-created_at;date of observation upload 
-updated_at;date of e.g. last identification
-description;notes section
-location;coordinates
-positional_accuracy;
-geoprivacy;NA or obscured
-license_code;indicative if it's not going to gbif
-taxon.id;taxon identifier number 
-taxon.rank;taxonomic level that observation reached (e.g. family, genus, species)
-taxon_geoprivacy;automatically applies to all observations of taxon
-taxon.observations_count;nº of observations for taxon in the platform
-taxon.conservation_status.authority;e.g. assessed by IUCN, Nature serve 
-taxon.conservation_status.status;e.g. vu
-user.id;user ID number
-user.created_at;date user created account
-user.activity_count;
-user.identifications_count;number of identifications user has done
-user.species_count;number of species user has observed
-user.observations_count;number of observations by user
+var_name,description
+id,observation id number
+uri,inaturalist link
+quality_grade,research grade vs needs id vs casual
+observed_on,date of observation (only date no time)
+created_at,date of observation upload
+updated_at,date of e.g. last identification
+description,notes section
+location,coordinates
+positional_accuracy,
+geoprivacy,NA or obscured
+license_code,indicative if it's not going to gbif
+taxon.id,taxon identifier number
+taxon.rank,"taxonomic level that observation reached (e.g. family, genus, species)"
+taxon_geoprivacy,automatically applies to all observations of taxon
+taxon.observations_count,nº of observations for taxon in the platform
+taxon.conservation_status.authority,"e.g. assessed by IUCN, Nature serve"
+taxon.conservation_status.status,e.g. vu
+user.id,user ID number
+user.created_at,date user created account
+user.activity_count,
+user.identifications_count,number of identifications user has done
+user.species_count,number of species user has observed
+user.observations_count,number of observations by user

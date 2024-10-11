@@ -1,12 +1,12 @@
 # iNaturalist_analysis
 
-## Code files:
+## Code organisation
 
 ### Pre-processing
 
 **"01_filter_iNat_taxa.R"**
 - Filters Fungi taxa from iNaturalist taxonomic archive
-- Input: "taxa.csv" - iNaturalist Taxonomy DarwinCore Archive, downloaded from <https://www.inaturalist.org/pages/developers> (June 2024)
+- Input: "taxa.csv" - iNaturalist Taxonomy DarwinCore Archive, downloaded from <https://www.inaturalist.org/pages/developers> (downloaded 1 July 2024)
 - Output: "inat_fungi_taxa.csv"
 
 **"02_process_GADM_europe.R"** 
@@ -25,13 +25,13 @@
 
 
 **"04_tidy_batch_process.R"**
-- processes and joins observation pages files to get variables needed for analysis, using **"functions_get_vars.R"**, **"script_tidy_data.R"** and "selected_variables.csv"
+- processes and joins page RData files to get variables needed for analysis, using **"functions_get_vars.R"**, **"script_tidy_data.R"** and "selected_variables.csv"
 - adds taxonomic data fixes taxonomic issues, using "inat_fungi_taxa.csv" and "taxon_swap_mapping.csv"
-- Output: "combined_data.csv" (includes Research Grade, Needs ID and Casual observations) 
+- Output: **"combined_data.csv"** (includes Research Grade, Needs ID and Casual observations) 
 
 **"05_join_countries.R"** 
 - Gets countries from coordinates for verifiable observations in "combined_data.csv" (excludes Casual) using data from "gadm_euro_countries.shp"
 - Joins countries to other variables and saves final tidy_data file for verifiable observations only (Research and Needs ID)
-- Output: "tidy_data_verifiable.csv"
+- Output: **"tidy_data_verifiable.csv"**
 
-**"06_subset_2ids.R"** 
+

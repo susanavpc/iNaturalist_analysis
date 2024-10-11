@@ -1,6 +1,3 @@
-# library(tidyverse)
-# source("code/get_vars_functions.R")
-# selected_variables <- read.csv("data/selected_variables.csv")$var_name 
 
 function_vars <-list()
 
@@ -34,14 +31,47 @@ for (i in 1:nrow(obs)) {
                 days_since_upload)
 }
 
-simple_vars <- obs %>% select(any_of(selected_fields))
+simple_vars <- obs %>% 
+        select(any_of(selected_variables))
 
 rm(obs)
 gc()
 
 #join vars from functions + vars selected from original dataframe
 tidy_data <- bind_rows(function_vars) %>% 
-        left_join(simple_vars,., by="id") %>% 
+        left_join(simple_vars,., by="id") 
+
+#categorise note length, n tags, n projects and n observation fields
+tidy_data <-  tidy_data %>%
+        mutate(
+                cat_notes = case_when(
+                        length_notes == 0  ~ 0,
+                        length_notes >= 1 & length_notes <= 60 ~ 1,
+                        length_notes >= 61 & length_notes <= 180  ~ 2,
+                        length_notes >= 181 & length_notes <= 300 ~ 3,
+                        length_notes > 300 ~ 4
+                ),
+                cat_obs_fields = case_when(
+                        n_obs_fields == 0  ~ 0,
+                        n_obs_fields >= 1 & n_obs_fields <= 3 ~ 1,
+                        n_obs_fields >= 4 & n_obs_fields <= 6  ~ 2,
+                        n_obs_fields > 6 ~ 3
+                ),
+                cat_tags = case_when(
+                        n_tags == 0  ~ 0,
+                        n_tags >= 1 & n_tags <= 3 ~ 1,
+                        n_tags  >= 4 & n_tags <= 6 ~ 2,
+                        n_tags > 6 ~ 3
+                ),
+                cat_projects = case_when(
+                        n_projects == 0 ~ 0,
+                        n_projects == 1 | n_projects == 2 ~ 1,
+                        n_projects > 3 ~ 2,
+                )
+        )
+
+# separate coordinates column and add months and year variables
+tidy_data <- tidy_data %>% 
         separate(location, into = c("lat", "long"), sep = ",") %>% 
         mutate(lat = as.numeric(lat),
                long = as.numeric(long),
@@ -49,19 +79,8 @@ tidy_data <- bind_rows(function_vars) %>%
                observed_on_year = year(observed_on),
                created_at_month = month(created_at, label =TRUE),
                observed_on_month = month(created_at, label =TRUE),
-               across(everything(), ~ replace(., . == "", NA))) %>% 
-        rename(notes = description, 
-               taxon_id = taxon.id,
-               taxon_rank = taxon.rank,
-               taxon_observations_count = taxon.observations_count,
-               taxon_conservation_authority = taxon.conservation_status.authority,
-               taxon_conservation_status = taxon.conservation_status.status,
-               user_id = user.id,
-               user_created_at = user.created_at,
-               user_activity_count = user.activity_count,
-               user_identifications_count = user.identifications_count,
-               user_species_count = user.species_count,
-               user_observations_count = user.observations_count)
+               across(everything(), ~ replace(., . == "", NA)))
+
 
 rm(simple_vars, function_vars)
 gc()

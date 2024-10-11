@@ -40,4 +40,4 @@ while (nrow(obs) == 200) {
         save(obs,file=paste0("data/raw/obs_",page,".RData"))
 }
 
-
+print("Download finished")

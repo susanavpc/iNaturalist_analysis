@@ -2,6 +2,7 @@
 
 library(tidyverse)
 
+tidy_data_verifiable <- read_csv("data/tidy_data/tidy_data_verifiable.csv")
 
 research_2ids <- tidy_data_verifiable %>%
         filter(quality_grade  == "research" & n_identifications == 2)
@@ -9,7 +10,7 @@ research_2ids <- tidy_data_verifiable %>%
 research_2ids <- research_2ids %>% 
         mutate(days_to_RG = as.numeric(as.Date(updated_at) - as.Date(created_at)))
 
-write.csv(research_2ids, "research_2ids.csv", row.names = FALSE)
+write_csv(research_2ids, "data/tidy_data/research_2ids.csv")
 
 #plots
 research_2ids_new <- research_2ids %>%

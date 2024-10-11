@@ -12,7 +12,7 @@ points <- read_csv("data/tidy_data/combined_data.csv") %>%
   filter(quality_grade != "casual") %>% 
   select(id, lat, long)
 
-gadm_sf_euro <- st_read("data/gadm_euro_countries.shp")
+gadm_sf_euro <- st_read("data/gadm/gadm_euro_countries.shp")
 
 # Make spatial points ----
 points_sf <- st_as_sf(points, coords = c("long", "lat"), crs = 4326)
@@ -28,10 +28,6 @@ points_sf <- points_sf %>%
 
 points_list <- split(points_sf, points_sf$chunk_id)
 
-rm(points_sf)
-gc()
-
-
 # Loop through each chunk, do intersection and save csv files----
 
 sf_int_list <- list()
@@ -44,19 +40,17 @@ for (i in seq_along(points_list)) {
         chunk <- points_list[[i]]
         
         points_sf_int <- st_intersection(chunk, gadm_sf_euro)
-        
 
         st_write(points_sf_int, paste0("temporary/intersections/int_", i, ".csv"))
-        
-        #  store the result in a list to combine later
-        #sf_int_list[[i]] <- points_sf_int
         
         rm(chunk, points_sf_int)
         gc()  
 }
 
 # Join all files ----
-csv_files <- list.files(pattern = "temporary/intersections/int.*\\.csv")
+csv_files <- list.files(path="temporary/intersections",
+                        pattern = "int.*\\.csv",
+                        full.names = TRUE)
 
 combined_countries <- csv_files %>%
   lapply(read_csv) %>%  
@@ -66,16 +60,17 @@ combined_countries <- csv_files %>%
 write_csv(combined_countries, "temporary/combined_countries.csv")
 
 
-# Apply nearest feature for NAs ----
+# Select points don't have gadm correspondence and apply nearest feature ----
 
-na_points <- combined_countries %>% 
+na_points <-  combined_countries %>% 
+  select(-chunk_id) %>% 
+  left_join(points_sf, ., by="id") %>% 
   filter(is.na(country)) %>% 
-  select(-country)
+  select(-country, -chunk_id)
 
-na_points_sf <- st_as_sf(na_points, coords = c("long", "lat"), crs = 4326)
 
 # sf function to get nearest feature
-nn = st_nearest_feature(na_points_sf, gadm_sf_euro)
+nn = st_nearest_feature(na_points, gadm_sf_euro)
 
 # convert to df
 nn_df <- data.frame(country_id = nn)
@@ -88,7 +83,7 @@ gadm_countries <- gadm_sf_euro %>%
   select(COUNTRY) %>%
   st_drop_geometry()
 
-# add index needed to join
+# add index needed to join 
 gadm_countries$id <- 1:nrow(gadm_countries)
 
 # join to get country name
@@ -98,22 +93,23 @@ new_countries <- points_nn %>%
   rename(new_country = COUNTRY) 
 
 # Join and coalesce countries ----
-country_data <- left_join(combined_countries, new_countries, by = "id")
+country_data <- bind_rows(combined_countries, new_countries) %>% 
+  select(-chunk_id, -geometry)
 
 country_data <- country_data %>% 
-  mutate(country = coalesce(country, new_country)) 
+  mutate(country = coalesce(country, new_country)) %>%  
 
 # confirm there are no more NAs
-view(filter(country_data, is.na(country))) 
+count(filter(country_data, is.na(country))) 
 
 country_data <- country_data %>%
   select(-new_country)
 
-# Save final combined result (optional) ----
-write_csv(country_data, "country_data.csv")
-
+# Save combined result (optional) ----
+write_csv(country_data, "temporary/country_data.csv")
 
 # Join countries with observation tidy data and save ----
+rm(list = setdiff(ls(), "country_data"))
 
 tidy_data_verifiable <- read_csv("data/tidy_data/combined_data.csv") %>% 
   filter(quality_grade != "casual") 
