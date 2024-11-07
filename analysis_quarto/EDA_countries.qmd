@@ -1,0 +1,66 @@
+---
+title: "EDA - country"
+format: html
+editor: visual
+---
+
+```{r}
+#| code-fold: true
+#| output: false
+
+library(tidyverse)
+library(patchwork)
+`tidy_data_verifiable <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+```
+
+
+```{r}
+#| code-fold: true
+ggplot(tidy_data_verifiable,aes(x = fct_infreq(country)))+
+        geom_bar()+
+        theme_minimal() +
+        labs(title = "Observations per country",
+             x = "Country", 
+             y = "Number of observations",
+             fill = "Type") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+        scale_y_continuous(labels = scales::label_number())
+```
+
+Note: Some countries such as Sweden have a small number of observations in iNaturalist despite having a significant mycological tradition because of the popularity of other platforms.
+
+```{r}
+#| code-fold: true
+
+data_summary <- tidy_data_verifiable%>%
+        group_by(country, quality_grade) %>%
+        summarise(count = n(), .groups = 'drop') #ungroups at the end
+
+country_grade_order <- data_summary %>%
+        group_by(country) %>%
+        summarise(prop_research = 
+                          sum(count[quality_grade == 'research']) / sum(count)) %>% 
+        arrange(desc(prop_research)) %>%
+        pull(country)
+
+tidy_data_verifiable <- tidy_data_verifiable %>%
+        mutate(country = factor(country, levels = country_grade_order))
+
+stacked_plot <- ggplot(tidy_data_verifiable,aes(x = country, fill= quality_grade))+
+        geom_bar(position = "fill")+
+        scale_fill_manual(values = c(research= "#a8cc08", needs_id= "#ffee91"))+
+        labs(x = "Country", y = "Proportion of obs", fill = "Quality Grade") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              legend.position="bottom")
+
+hist_plot <- ggplot(tidy_data_verifiable,aes(x = country))+
+        geom_bar()+
+        theme_minimal() +
+        labs( x = NULL, y= "No Obs")+
+        theme(axis.text.x = element_blank())+
+        scale_y_continuous(labels = scales::label_number())
+        
+hist_plot / stacked_plot + plot_layout(heights = c(1, 2))
+```
+
