@@ -83,6 +83,10 @@ combined_data <- combined_data %>%
 combined_data %>% 
         filter(is.na(phylum) & taxon_rank != "kingdom") %>% view()
 
+#replace NAs in taxonomy columns
+combined_data <- combined_data %>% 
+        mutate(across(kingdom:specificEpithet, ~ ifelse(is.na(.), "Not identified", .)))
+
 # Save dataset (includes casual observations) ----
 write_csv(combined_data,"data/tidy_data/combined_data.csv")
 

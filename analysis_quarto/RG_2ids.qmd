@@ -1,0 +1,43 @@
+---
+title: "Research Grade observations with only 2 IDs"
+format: html
+editor: visual
+---
+
+Since it's not possible to get the date when observation was upgraded to RG, we crated a subset observations that are RG and have only 2 ID. For these observations the date of the last update corresponds to the date in got RG status.
+
+```{r}
+#| code-fold: true
+#| output: false
+
+library(tidyverse)
+
+tidy_data_verifiable <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+
+research_2ids <- tidy_data_verifiable %>%
+        filter(quality_grade  == "research" & n_identifications == 2)
+
+rm(tidy_data_verifiable)
+
+research_2ids <- research_2ids %>% 
+        mutate(days_to_RG = as.numeric(as.Date(updated_at) - as.Date(created_at)))
+```
+
+```{r}
+#| code-fold: true
+research_2ids <- research_2ids %>%
+        arrange(days_to_RG) %>%
+        mutate(observation = 1:n())
+
+research_2ids %>% 
+        ggplot(aes(x=days_to_RG, y= observation))+
+        geom_line() +
+        geom_point(size = 0.5, alpha = 0.5) + 
+        labs(x = "Number of days to Research Grade", 
+             y = "Number of observations") +
+        scale_y_continuous(labels = scales::label_number())+
+        scale_x_continuous(breaks = seq(0, max(research_2ids$days_to_RG), by = 365))+
+        theme_minimal()
+```
+
+For those observations that reached RG with exclusively two IDs, 50% achieved RG within one day, around 60% within 3 days, 89% within 1 year.
