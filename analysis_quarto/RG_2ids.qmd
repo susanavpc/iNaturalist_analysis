@@ -40,4 +40,20 @@ research_2ids %>%
         theme_minimal()
 ```
 
+```{r}
+perc <- research_2ids %>% 
+        mutate(perc = observation / n()) %>% 
+        select(perc, days_to_RG)
+
+perc %>% filter(perc>=0.5)  %>% slice_min(perc, n = 1) 
+```
+
+```{r}
+perc %>% filter(perc>=0.6)  %>% slice_min(perc, n = 1) 
+```
+
+```{r}
+perc %>% filter(days_to_RG == 365)  %>% slice_min(perc, n = 1) 
+```
+
 For those observations that reached RG with exclusively two IDs, 50% achieved RG within one day, around 60% within 3 days, 89% within 1 year.
