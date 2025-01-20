@@ -1,3 +1,8 @@
+# get number of occurrences for plants, animals and fungi + proportion from iNat
+# initial API call to get place ID from country names in dataset
+# API call for observations to select number of obs
+# cut-off date of 2024-06-26 (matches observations download)
+
 library(dplyr)
 library(httr)
 library(jsonlite)
@@ -44,10 +49,11 @@ country_names$place_id[country_names$country == "North Macedonia"] <- get_countr
 
 # get number of fungi + plants + animals observations per country ----
 
+#calls only data created on and before 2024-06-26 (matches our date of observations download)
+# 0 results per page because we only want total number, not the results
+# spam = false is needed when downloading all data to match results from website
 get_n_obs <- function(place_id = NULL, taxon = NULL, grade = NULL, verifiable = NULL, spam = NULL){
-        #calls only data created on and before 2024-06-26 (matches our date of observations download)
-        # 0 results per page because we only want total number, not the results
-        # spam = false is needed when downloading all data to match results from website
+
         call <- paste0("https://api.inaturalist.org/v1/observations?created_d2=2024-06-26&per_page=0&place_id=",
                        place_id,"&taxon_id=",taxon,"&quality_grade=",grade,"&verifiable=",verifiable,"&spam=",spam)
         get_call_json <- GET(url = call) %>%

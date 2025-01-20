@@ -1,5 +1,5 @@
 # get number of occurrences for plants, animals and fungi + proportion from GBIF
-# records were filtered to exclude:
+# in one case records were filtered to exclude:
 # fossil specimens, literature, living specimens, material citation and unknown
 
 library(rgbif)
@@ -102,7 +102,7 @@ for (i in country_codes$country_iso) {
 joined_gbif_data_filtered <- left_join(country_codes, gbif_data_filtered, by = "country_iso")
 write_csv(joined_gbif_data_filtered, "data/gbif_country_prop_filtered.csv")
 
-# get global and european data ----
+# get global and european data (filtered) ----
 
 global_n_fungi_filtered <- occ_count(scientificName="Fungi", basisOfRecord = basis_record)
 global_n_plants_filtered <- occ_count(scientificName="Plantae", basisOfRecord = basis_record)
@@ -122,5 +122,5 @@ gbif_data_global_europe <- data.frame(
         prop_fungi = c(global_fungi_prop_filtered, eu_fungi_prop_filtered)
 )
 
-write_csv(gbif_data_global_europe, "data/gbif_country_prop_global_europe.csv")
+write_csv(gbif_data_global_europe, "data/gbif_prop_global_europe.csv")
 

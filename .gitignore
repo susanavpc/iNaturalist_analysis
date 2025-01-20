@@ -5,3 +5,6 @@
 data/raw
 data/inaturalist_taxa.csv
 temporary/
+data/processed_csvs/
+data/tidy_data/
+data/gadm
