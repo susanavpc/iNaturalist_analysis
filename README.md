@@ -46,8 +46,8 @@
 **"get_gbif_country_prop.R"** 
 - Gets number of occurrences for plants, animals and fungi from GBIF
 - Input:"data_country_names.csv" (list of countries in dataset) & 
-        "country_iso_codes.csv" (country iso codes downloaded from <https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv)>
-- Output:"gbif_country_prop.csv" 
-         "gbif_country_prop_filtered.csv" (filtered based of basis of record values)
+        "country_iso_codes.csv" (country iso codes downloaded from <https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv)>)
+- Output:"gbif_country_prop.csv" &
+         "gbif_country_prop_filtered.csv" (filtered based of basis of record values) &
          "gbif_prop_global_europe.csv"
 - Date of download: 20 Jan 2025
