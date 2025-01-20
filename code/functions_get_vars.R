@@ -1,5 +1,39 @@
 # Functions to calculate variables needed 
 
+#get sum of number of pixels for all photos in observation
+get_sum_pixels <- function(i, dataset = obs){
+        sum_pixels <- sum(dataset$photos[[i]]$original_dimensions.width * dataset$photos[[i]]$original_dimensions.height)
+        return(sum_pixels)
+}
+
+#get taxon rank of the initial id given by observer (if user.id matches on 1st id)
+get_observer_taxon_rank <- function(i, dataset = obs){
+        if ((is.null(dataset$identifications[[i]]) || 
+             !is.data.frame(dataset$identifications[[i]]) || 
+             nrow(dataset$identifications[[i]]) == 0)) {
+                return("No ids")
+        }
+        if (dataset$user.id[i] == dataset$identifications[[i]]$user.id[1]) {
+                return(dataset$identifications[[i]]$taxon.rank[1])
+        } else {
+                return("First id by community") }
+}
+
+#get taxon rank of the initial id given by observer (if user.id matches on 1st id)
+get_observer_taxon_id <- function(i, dataset = obs){
+        if ((is.null(dataset$identifications[[i]]) || 
+             !is.data.frame(dataset$identifications[[i]]) || 
+             nrow(dataset$identifications[[i]]) == 0)) {
+                return(NA)
+        }
+        if (dataset$user.id[i] == dataset$identifications[[i]]$user.id[1]) {
+                return(dataset$identifications[[i]]$taxon.id[1])
+        } else {
+                return(NA) 
+        }
+}
+
+
 # get GBIF link   
 get_gbif_url <- function(i, dataset = obs){
                 outlinks <- dataset$outlinks[[i]]

@@ -15,6 +15,9 @@ for (i in 1:nrow(obs)) {
         n_tags <- get_n_tags(i)
         n_projects <- get_n_projects(i)
         microscopy_project <- get_microscopy_project(i)
+        sum_pixels <- get_sum_pixels(i)
+        observer_taxon_rank <- get_observer_taxon_rank(i)
+        observer_taxon_id <- get_observer_taxon_id(i)
         
         function_vars[[i]] <- data.frame(
                 id, 
@@ -28,7 +31,10 @@ for (i in 1:nrow(obs)) {
                 n_tags,
                 n_projects, 
                 microscopy_project,
-                days_since_upload)
+                days_since_upload,
+                sum_pixels,
+                observer_taxon_rank,
+                observer_taxon_id)
 }
 
 simple_vars <- obs %>% 
