@@ -142,3 +142,50 @@ for (i in 1:nrow(country_names)) {
 }
 
 write_csv(iNat_data_counts, "data/iNat_country_prop.csv")
+
+
+# get counts for europe and global----
+
+#set place_id for Europe
+place_id <- 97391
+
+iNat_data_counts_eu <- data.frame(
+        region = "europe",
+        n_fungi_research = get_n_obs(place_id, taxon = fungi, grade = "research"),
+        n_fungi_research = get_n_obs(place_id, taxon = fungi, grade = "research"),
+        n_fungi_needs_id = get_n_obs(place_id, taxon = fungi, grade = "needs_id"),
+        n_fungi_verifiable = get_n_obs(place_id, taxon = fungi, verifiable = "true"),
+        n_fungi_all = get_n_obs(place_id, taxon = fungi, spam = "false"),
+        
+        n_plants_research = get_n_obs(place_id, taxon = plantae, grade = "research"),
+        n_plants_needs_id = get_n_obs(place_id, taxon = plantae, grade = "needs_id"),
+        n_plants_verifiable = get_n_obs(place_id, taxon = plantae, verifiable = "true"),
+        n_plants_all = get_n_obs(place_id, taxon = plantae, spam = "false"),
+        
+        n_animals_research = get_n_obs(place_id, taxon = animalia, grade = "research"),
+        n_animals_needs_id = get_n_obs(place_id, taxon = animalia, grade = "needs_id"),
+        n_animals_verifiable = get_n_obs(place_id, taxon = animalia, verifiable = "true"),
+        n_animals_all = get_n_obs(place_id, taxon = animalia, spam = "false"))
+
+iNat_data_counts_global <- data.frame(
+        region = "global",
+        n_fungi_research = get_n_obs(taxon = fungi, grade = "research"),
+        n_fungi_research = get_n_obs(taxon = fungi, grade = "research"),
+        n_fungi_needs_id = get_n_obs(taxon = fungi, grade = "needs_id"),
+        n_fungi_verifiable = get_n_obs(taxon = fungi, verifiable = "true"),
+        n_fungi_all = get_n_obs(taxon = fungi, spam = "false"),
+        
+        n_plants_research = get_n_obs(taxon = plantae, grade = "research"),
+        n_plants_needs_id = get_n_obs(taxon = plantae, grade = "needs_id"),
+        n_plants_verifiable = get_n_obs(taxon = plantae, verifiable = "true"),
+        n_plants_all = get_n_obs(taxon = plantae, spam = "false"),
+        
+        n_animals_research = get_n_obs(taxon = animalia, grade = "research"),
+        n_animals_needs_id = get_n_obs(taxon = animalia, grade = "needs_id"),
+        n_animals_verifiable = get_n_obs(taxon = animalia, verifiable = "true"),
+        n_animals_all = get_n_obs(taxon = animalia, spam = "false"))
+
+iNat_region_counts <- rbind(iNat_data_counts_eu, iNat_data_counts_global)
+
+write_csv(iNat_region_counts, "data/iNat_prop_global_europe.csv")
+
