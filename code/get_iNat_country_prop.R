@@ -46,6 +46,7 @@ for (i in 1:nrow(country_names)) {
 # iNaturalist has North Macedonia as Macedonia
 country_names$place_id[country_names$country == "North Macedonia"] <- get_country_id("Macedonia")
 
+write_csv(country_names, "data/country_place_ids.csv")
 
 # get number of fungi + plants + animals observations per country ----
 
@@ -151,7 +152,7 @@ place_id <- 97391
 
 iNat_data_counts_eu <- data.frame(
         region = "europe",
-        n_fungi_research = get_n_obs(place_id, taxon = fungi, grade = "research"),
+        
         n_fungi_research = get_n_obs(place_id, taxon = fungi, grade = "research"),
         n_fungi_needs_id = get_n_obs(place_id, taxon = fungi, grade = "needs_id"),
         n_fungi_verifiable = get_n_obs(place_id, taxon = fungi, verifiable = "true"),
@@ -169,7 +170,7 @@ iNat_data_counts_eu <- data.frame(
 
 iNat_data_counts_global <- data.frame(
         region = "global",
-        n_fungi_research = get_n_obs(taxon = fungi, grade = "research"),
+        
         n_fungi_research = get_n_obs(taxon = fungi, grade = "research"),
         n_fungi_needs_id = get_n_obs(taxon = fungi, grade = "needs_id"),
         n_fungi_verifiable = get_n_obs(taxon = fungi, verifiable = "true"),

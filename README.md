@@ -39,9 +39,9 @@
 **"get_iNat_country_prop.R"** 
 - Gets number of occurrences for plants, animals and fungi from iNaturalist data and calculates proportion for fungi per country, at Europe level and globally
 - Initial API call is used to get place ID from country names in dataset followed by call to get number of observations
-- API call for n_observations at european level and global
+- API call for n_observations at European level and global
 - Input: "data_country_names.csv" (list of countries in dataset)
-- Output: "iNat_country_prop.csv" & "iNat_prop_global_europe.csv"
+- Output: "iNat_country_prop.csv" & "iNat_prop_global_europe.csv" & "country_place_ids.csv"
 - Cut-off date: 26 June 2024 (matches observations dataset download)
 
 **"get_gbif_country_prop.R"** 
@@ -52,3 +52,10 @@
          "gbif_country_prop_filtered.csv" (filtered based of basis of record values) &
          "gbif_prop_global_europe.csv"
 - Date of download: 20 Jan 2025
+
+**"get_country_obser_iders.R"** 
+
+- Gets number of fungi observers and identifiers per country, Europe and globally 
+- Only includes observers and identifiers of verifiable observations
+- Cut-off date of 2024-06-26 (matches observations download)
+- Input: "country_place_ids.csv"
