@@ -10,9 +10,8 @@ editor: visual
 
 library(tidyverse)
 library(patchwork)
-`tidy_data_verifiable <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+tidy_data_verifiable <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
 ```
-
 
 ```{r}
 #| code-fold: true
@@ -63,4 +62,3 @@ hist_plot <- ggplot(tidy_data_verifiable,aes(x = country))+
         
 hist_plot / stacked_plot + plot_layout(heights = c(1, 2))
 ```
-

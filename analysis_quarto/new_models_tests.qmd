@@ -1,0 +1,93 @@
+---
+title: "Overall model with alterations and less variables"
+format: html
+editor: visual
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+tidy_data <- tidy_data %>% 
+        select("id", "uri", "quality_grade", "created_at", "taxon_id", "n_photos",
+               "microscopy_project","days_since_upload", "cat_notes", "cat_obs_fields",
+               "cat_tags","cat_projects", "created_at_year", "observed_on_year",
+               "created_at_month","observed_on_month", "country","kingdom", "phylum", "class",
+               "order", "family","genus","taxon_rank", "sum_pixels", "n_obs_fields", 
+               "n_tags", "n_projects", "length_notes")
+```
+
+```{r}
+data <- tidy_data %>% 
+        filter(!is.na(sum_pixels) & n_photos != 0) %>% 
+        mutate(mean_pixels = sum_pixels/n_photos,
+               log_photos = log10(n_photos),
+               log_sp = log10(sum_pixels),
+               log_mp = log10(mean_pixels),
+               rg=as.numeric(quality_grade == "research"),
+               log_dsu = log10(days_since_upload + 1),
+               log_notes = log10(length_notes + .Machine$double.eps),
+               log_obs_fields = log10(n_obs_fields + .Machine$double.eps),
+               log_tags = log10(n_tags + .Machine$double.eps),
+               log_projects = log10(n_projects + .Machine$double.eps),
+               )
+```
+
+```{r}
+data <- data %>%
+        filter(phylum != "Not identified") %>% 
+        group_by(phylum) %>% 
+        filter(n() >= 10) %>% 
+        ungroup 
+```
+
+```{r}
+fit_no_microscopy <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_projects + log_obs_fields + log_mp + created_at_month + (1 | phylum), data= data, family = binomial,  na.action = na.fail)
+
+summary(fit_no_microscopy)
+```
+
+```{r}
+fit_no_microscopy_logmp <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_projects + log_obs_fields + created_at_month + (1 | phylum), data= data, family = binomial,  na.action = na.fail)
+```
+
+Filtering data for number of observations per phylum above 100:
+
+```{r}
+data_100 <- data %>%
+        filter(phylum != "Not identified") %>% 
+        group_by(phylum) %>% 
+        filter(n() >= 100) %>% 
+        ungroup 
+```
+
+```{r}
+fit_n_100 <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_obs_fields + log_mp +  microscopy_project + log_photos:microscopy_project + (1 | created_at_month) + (1 | phylum), data= data_100, family = binomial,  na.action = na.fail)
+
+
+summary(fit_n_100)
+```
+
+```{r}
+fit_n_100_projects <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_projects + log_obs_fields + log_mp +  microscopy_project + log_photos:microscopy_project + (1 | created_at_month) + (1 | phylum), data= data_100, family = binomial,  na.action = na.fail)
+
+summary(fit_n_100_projects)
+```
+
+Tests:
+
+```{r}
+summary(fit_no_microscopy)
+```
+
+```{r}
+summary(fit_no_microscopy_logmp_tags)
+```
+
+```{r}
+summary(fit_no_microscopy_logmp_tags_obsfields)
+```
+
+```{r}
+summary(fit_no_obs_variables)
+```

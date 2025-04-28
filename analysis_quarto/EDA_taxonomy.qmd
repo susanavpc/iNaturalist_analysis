@@ -1,0 +1,398 @@
+---
+title: "EDA - taxonomy"
+format: html
+editor: visual
+---
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| warning: false
+
+library(tidyverse)
+library(patchwork)
+library(ggalluvial)
+
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+rank_order <- readRDS("rank_order.RDS")
+
+#order taxonomic levels
+tidy_data <- tidy_data %>%
+        mutate(taxon_rank = factor(taxon_rank, levels = rank_order, ordered = TRUE),
+               observer_taxon_rank = factor(observer_taxon_rank, levels = rank_order, ordered = TRUE))
+```
+
+```{r}
+#| label: fig phyla
+#| code-fold: true
+ggplot(tidy_data,aes(x = fct_infreq(phylum), fill= phylum))+
+        geom_bar()+
+        labs(title = "Number of observations per phylum",
+             x = "Phylum", y = "Number of observations (log10)")+
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+        scale_y_log10(labels = scales::label_number())
+```
+
+```{r}
+#| label: fig quality grade phylum
+#| code-fold: true
+
+data_summary_grade <- tidy_data%>%
+        group_by(phylum, quality_grade) %>%
+        summarise(count = n(), .groups = 'drop') #ungroups at the end
+
+#define order by proportion of RG
+phylum_grade_order <- data_summary_grade %>%
+        group_by(phylum) %>%
+        summarise(prop_research = 
+                          sum(count[quality_grade == 'research']) / sum(count)) %>% 
+        arrange(desc(prop_research)) %>%
+        pull(phylum)
+
+# order phylum 
+tidy_data <- tidy_data %>%
+        mutate(phylum = factor(phylum, levels = phylum_grade_order))
+
+stacked_plot<- ggplot(tidy_data, aes(x = phylum, fill = quality_grade)) +
+        geom_bar(position = "fill") +
+        labs(title = "RG proportion per phylum",
+             x = "Phylum", y = "Proportion of obs", fill = "Quality Grade") +
+        scale_fill_manual(values = c(research= "#a8cc08", needs_id= "#ffee91",casual= "#aaaaaa"))+
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+hist_plot <- ggplot(tidy_data,aes(x = phylum))+
+        geom_bar()+
+        labs( x = NULL, y = "No.obs. (log10)")+
+        theme_minimal() +
+        theme(axis.text.x = element_blank())+
+        scale_y_log10(labels = scales::label_number())
+        
+hist_plot / stacked_plot + plot_layout(heights = c(1, 2))
+```
+
+Taxonomic predictor - taxon observation belongs to has influence of identification success (intrinsic predictor). However, size of the taxon (e.g. number of species in the phylum) could be confounding factor.
+
+Not identified values correspond to observations at Kingdom level.
+
+-   Though Ascomycota has less observations, proportion of RG is slightly higher.
+
+-   The 3 phyla with higher %RG have 152 or less obs.
+
+Observations were then grouped by the lowest taxon rank they were identified to. (aka the level they got stuck at :) )
+
+```{r}
+#| label: fig lowest taxon rank
+#| code-fold: true
+
+ggplot(tidy_data,aes(x = taxon_rank, fill= taxon_rank))+
+        geom_bar()+
+        labs(title = "Lowest taxonomic level",
+             x = "Taxon rank", 
+             y = "Number of observations") +
+        scale_fill_viridis_d(option = "inferno") +
+        theme_minimal()+
+        theme(legend.position = "none") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+Only observations that reach species rank or lower will automatically be upgraded to RG if the community reaches a consensus. However, it is possible to tag an observation as "as good as it can be" (e.g. microscopy is needed to confirm species, but it was not done) in which case it will become RG for the level the community agreement is at. This is not very frequent however:
+
+```{r}
+#| label: fig lowest taxon rank by grade
+#| code-fold: true
+
+ggplot(tidy_data,aes(x = taxon_rank, fill= taxon_rank))+
+        geom_bar()+
+        labs(title = "Lowest taxonomic level grouped by quality grade",
+             x = "Taxon rank", 
+             y = "Number of observations") +
+        facet_wrap(~quality_grade,ncol=1,scales="free_y")+
+        scale_fill_viridis_d(option="inferno") +
+        theme_minimal()+
+        theme(legend.position = "none") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))+
+        scale_y_continuous(labels = scales::label_number())
+```
+
+### Does the rank suggested by the observer influence the final rank it ends up as? 
+
+Initial ranks are the ones that were proposed by observer and final ranks are the ones at time of download.
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| fig.height: 7
+#| warning: false
+
+
+tidy_data <- tidy_data %>% 
+        mutate(initial_rank = case_when(
+                observer_taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                observer_taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                observer_taxon_rank %in% c("superfamily", "family", "subfamily", 
+                                           "tribe", "subtribe", "supertribe") ~ "Family",
+                observer_taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                observer_taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                is.na(observer_taxon_rank) ~ "Unclassified",
+                TRUE ~ observer_taxon_rank),
+               
+               final_rank = case_when(
+                       taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                       taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                       taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                       taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                       taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                       is.na(taxon_rank) ~ "Unclassified",
+                       TRUE ~ taxon_rank)) %>% 
+        mutate(initial_rank = factor(initial_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")),
+               final_rank = factor(final_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")))
+      
+rank_count <- tidy_data %>%
+        count(initial_rank, final_rank)  # Count combinations
+
+# Create the alluvial plot
+ggplot(rank_count, aes(axis1 = initial_rank, axis2 = final_rank, y = n)) +
+        geom_alluvium(aes(fill = initial_rank)) +
+        geom_stratum(alpha = 0.5) +  # Original Rank Stratum
+        geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+        scale_x_discrete(limits = c("Original Rank", "Final Rank"),
+                         expand = c(0.15, 0.05)) +
+        scale_fill_viridis_d() +
+        theme_void() +
+        theme(legend.position = "none") 
+```
+
+Calculate percentages of each flow:
+
+```{r}
+#| code-fold: true 
+#| echo: false
+
+# calculate the total counts for each initial rank
+rank_total <- rank_count %>%
+        group_by(initial_rank) %>%
+        summarise(total_initial_rank = sum(n))
+
+# calculate the percentages
+rank_count <- rank_count %>%
+        left_join(rank_total, by = "initial_rank") %>%
+        mutate(percentage = n / total_initial_rank * 100)
+
+knitr::kable(rank_count)
+```
+
+Same thing for RG observation only:
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| fig.height: 7
+#| warning: false
+
+
+tidy_data <- tidy_data %>% 
+        mutate(initial_rank = case_when(
+                observer_taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                observer_taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                observer_taxon_rank %in% c("superfamily", "family", "subfamily", 
+                                           "tribe", "subtribe", "supertribe") ~ "Family",
+                observer_taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                observer_taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                is.na(observer_taxon_rank) ~ "Unclassified",
+                TRUE ~ observer_taxon_rank),
+               
+               final_rank = case_when(
+                       taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                       taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                       taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                       taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                       taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                       is.na(taxon_rank) ~ "Unclassified",
+                       TRUE ~ taxon_rank)) %>% 
+        mutate(initial_rank = factor(initial_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")),
+               final_rank = factor(final_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")))
+      
+rank_count <- tidy_data %>%
+        filter(quality_grade == "research") %>% 
+        count(initial_rank, final_rank)  # Count combinations
+
+# Create the alluvial plot
+ggplot(rank_count, aes(axis1 = initial_rank, axis2 = final_rank, y = n)) +
+        geom_alluvium(aes(fill = initial_rank)) +
+        geom_stratum(alpha = 0.5) +  # Original Rank Stratum
+        geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+        scale_x_discrete(limits = c("Original Rank", "Final Rank"),
+                         expand = c(0.15, 0.05)) +
+        scale_fill_viridis_d() +
+        theme_void()+
+        theme(legend.position = "none") 
+```
+
+Same for needs_id only:
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| warning: false
+
+
+tidy_data <- tidy_data %>% 
+        mutate(initial_rank = case_when(
+                observer_taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                observer_taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                observer_taxon_rank %in% c("superfamily", "family", "subfamily", 
+                                           "tribe", "subtribe", "supertribe") ~ "Family",
+                observer_taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                observer_taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                is.na(observer_taxon_rank) ~ "Unclassified",
+                TRUE ~ observer_taxon_rank),
+               
+               final_rank = case_when(
+                       taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom/Phylum",
+                       taxon_rank %in% c("class", "subclass", "order", "superorder", "infraorder", "suborder") ~ "Class/Order",
+                       taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                       taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                       taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                       is.na(taxon_rank) ~ "Unclassified",
+                       TRUE ~ taxon_rank)) %>% 
+        mutate(initial_rank = factor(initial_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")),
+               final_rank = factor(final_rank, levels = c(
+                "Kingdom/Phylum", "Class/Order", 
+                "Family", "Genus", "Species", "Unclassified")))
+      
+rank_count <- tidy_data %>%
+        filter(quality_grade == "needs_id") %>% 
+        count(initial_rank, final_rank)  # Count combinations
+
+# Create the alluvial plot
+ggplot(rank_count, aes(axis1 = initial_rank, axis2 = final_rank, y = n)) +
+        geom_alluvium(aes(fill = initial_rank)) +
+        geom_stratum(alpha = 0.5) +  # Original Rank Stratum
+        geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+        scale_x_discrete(limits = c("Original Rank", "Final Rank"),
+                         expand = c(0.15, 0.05)) +
+        scale_fill_viridis_d() +
+        theme_void() +
+        theme(legend.position = "none") 
+```
+
+Plots I had before simplifying categories:
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| warning: false
+#| fig.height: 7
+
+tidy_data <- tidy_data %>% 
+        mutate(initial_rank = case_when(
+                observer_taxon_rank %in% c("kingdom") ~ "Kingdom",
+                observer_taxon_rank %in% c("phylum", "subphylum") ~ "Phylum", 
+                observer_taxon_rank %in% c("class", "subclass") ~ "Class",
+                observer_taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                observer_taxon_rank %in% c("superfamily", "family", "subfamily", 
+                                           "tribe", "subtribe", "supertribe") ~ "Family",
+                observer_taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                observer_taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                is.na(observer_taxon_rank) ~ "Unclassified",
+                TRUE ~ observer_taxon_rank),
+               
+               final_rank = case_when(
+                       taxon_rank %in% c("kingdom") ~ "Kingdom",
+                       taxon_rank %in% c("phylum", "subphylum") ~ "Phylum", 
+                       taxon_rank %in% c("class", "subclass") ~ "Class",
+                       taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                       taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                       taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                       taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                       is.na(taxon_rank) ~ "Unclassified",
+                       TRUE ~ taxon_rank)) %>% 
+        mutate(initial_rank = factor(initial_rank, levels = c(
+                "Kingdom", "Phylum", "Class", "Order", 
+                "Family", "Genus", "Species", "Unclassified")),
+               final_rank = factor(final_rank, levels = c(
+                "Kingdom", "Phylum", "Class", "Order", 
+                "Family", "Genus", "Species", "Unclassified")))
+      
+rank_count <- tidy_data %>%
+        count(initial_rank, final_rank)  # Count combinations
+
+# Create the alluvial plot
+ggplot(rank_count, aes(axis1 = initial_rank, axis2 = final_rank, y = n)) +
+        geom_alluvium(aes(fill = initial_rank)) +
+        geom_stratum(alpha = 0.5) +  # Original Rank Stratum
+        geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+        scale_x_discrete(limits = c("Original Rank", "Final Rank"),
+                         expand = c(0.15, 0.05)) +
+        scale_fill_viridis_d() +
+        theme_void() +
+        theme(legend.position = "none") 
+```
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| warning: false
+#| fig.height: 7
+
+tidy_data <- tidy_data %>% 
+        mutate(initial_rank = case_when(
+                observer_taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom / Phylum",
+                observer_taxon_rank %in% c("class", "subclass") ~ "Class",
+                observer_taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                observer_taxon_rank %in% c("superfamily", "family", "subfamily", 
+                                           "tribe", "subtribe", "supertribe") ~ "Family",
+                observer_taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                observer_taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                is.na(observer_taxon_rank) ~ "Unclassified",
+                TRUE ~ observer_taxon_rank),
+               
+               final_rank = case_when(
+                       taxon_rank %in% c("kingdom", "phylum", "subphylum") ~ "Kingdom / Phylum",
+                       taxon_rank %in% c("class", "subclass") ~ "Class",
+                       taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                       taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                       taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                       taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species",
+                       is.na(taxon_rank) ~ "Unclassified",
+                       TRUE ~ taxon_rank)) %>% 
+        mutate(initial_rank = factor(initial_rank, levels = c(
+                "Kingdom / Phylum", "Class", "Order", 
+                "Family", "Genus", "Species", "Unclassified")),
+               final_rank = factor(final_rank, levels = c(
+                "Kingdom / Phylum", "Class", "Order", 
+                "Family", "Genus", "Species", "Unclassified")))
+      
+rank_count <- tidy_data %>%
+        count(initial_rank, final_rank)  # Count combinations
+
+# Create the alluvial plot
+ggplot(rank_count, aes(axis1 = initial_rank, axis2 = final_rank, y = n)) +
+        geom_alluvium(aes(fill = initial_rank)) +
+        geom_stratum(alpha = 0.5) +  # Original Rank Stratum
+        geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+        scale_x_discrete(limits = c("Original Rank", "Final Rank"),
+                         expand = c(0.15, 0.05)) +
+        scale_fill_viridis_d() +
+        theme_void() +
+        theme(legend.position = "none") 
+```

@@ -1,0 +1,116 @@
+---
+title: "Models genus level"
+format: html
+editor: visual
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+tidy_data <- tidy_data %>% 
+        select("id", "uri", "quality_grade", "created_at", "taxon_id", "n_photos",
+               "microscopy_project","days_since_upload", "cat_notes", "cat_obs_fields",
+               "cat_tags","cat_projects", "created_at_year", "observed_on_year",
+               "created_at_month","observed_on_month", "country","kingdom", "phylum", "class",
+               "order", "family","genus","taxon_rank", "sum_pixels", "n_obs_fields", 
+               "n_tags", "n_projects", "length_notes")
+
+data_genus <- tidy_data %>% 
+        filter(genus != "Not identified")
+```
+
+```{r}
+n_genera <- data_genus %>% 
+        group_by(genus) %>% 
+        count() %>% 
+        nrow()
+n_genera_less10 <- data_genus %>% 
+        group_by(genus) %>% 
+        count() %>%
+        filter(n<10)%>% 
+        nrow()
+n_genera_more10 <- data_genus %>% 
+        group_by(genus) %>% 
+        count() %>%
+        filter(n>=10)%>% 
+        nrow()
+
+print(paste("Number of genera:", n_genera))
+print(paste("Number of genera with less than 10 observations:",n_genera_less10))
+print(paste("Number of genera with 10 or more observations:", n_genera_more10))
+```
+
+```{r}
+n_genera_more10 <- data_genus %>% 
+        group_by(genus) %>% 
+        filter(n() >= 10)%>% 
+        ungroup()
+
+data <- n_genera_more10 %>% 
+        filter(!is.na(sum_pixels) & n_photos != 0) %>% 
+        mutate(mean_pixels = sum_pixels/n_photos,
+               log_photos = log10(n_photos),
+               log_sp = log10(sum_pixels),
+               log_mp = log10(mean_pixels),
+               rg=as.numeric(quality_grade == "research"),
+               log_dsu = log10(days_since_upload + 1),
+               log_notes = log10(length_notes + .Machine$double.eps), 
+               log_obs_fields = log10(n_obs_fields + .Machine$double.eps),
+               log_tags = log10(n_tags + .Machine$double.eps),
+               log_projects = log10(n_projects + .Machine$double.eps),
+               )
+
+rm(tidy_data, data_genus)
+```
+
+Ideally this would be the model, with month and genera as random effects. Though the model finishes running I get these warnings:
+
+```         
+Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 7.88922 (tol = 0.002, component 1)
+Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model is nearly unidentifiable: very large eigenvalue
+ - Rescale variables?
+```
+
+I also can't run AIC on the model - it gets stuck on multiple warnings:
+
+```{r}
+fit_1 <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_obs_fields + log_mp + microscopy_project + log_photos:microscopy_project + (1 | created_at_month) + (1 | genus), data= data, family = binomial,  na.action = na.fail)
+
+summary(fit_1)
+
+```
+
+```         
+```
+
+```{r}
+dredge_results_1 <- MuMIn::dredge(fit_1, rank="AIC")
+```
+
+Same thing happens if I only keep genus as random effect:
+
+```{r}
+fit_2 <- lme4::glmer(rg ~ log_dsu + log_photos + log_notes + log_tags + log_obs_fields + log_mp + microscopy_project + log_photos:microscopy_project + created_at_month + (1 | genus), data= data, family = binomial,  na.action = na.fail)
+
+summary(fit_2)
+```
+
+```{r}
+dredge_results_2 <- MuMIn::dredge(fit_2, rank="AIC")
+```
+
+```         
+Warning in checkConv(attr(opt, "derivs"), opt$par, ctrl = control$checkConv,  :
+  Model failed to converge with max|grad| = 0.00663666 (tol = 0.002, component 1)
+```
+
+Keeping everything fixed mean keeping coefficients for 1277 genera. I get error for vector memory of 16 gb reached.
+
+```{r}
+fit_3 <- glm(rg ~ log_dsu + log_photos + log_notes + log_tags + log_obs_fields + log_mp +  microscopy_project + log_photos:microscopy_project + created_at_month + genus, data= data, family = binomial,  na.action = na.fail)
+
+summary(fit_3)
+```

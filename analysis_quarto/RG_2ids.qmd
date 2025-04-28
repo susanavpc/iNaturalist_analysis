@@ -15,12 +15,15 @@ library(tidyverse)
 tidy_data_verifiable <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
 
 research_2ids <- tidy_data_verifiable %>%
-        filter(quality_grade  == "research" & n_identifications == 2)
+        filter(quality_grade  == "research" & n_identifications == 2) %>% 
+        mutate(created_at_month = factor(created_at_month, levels = month.abb, ordered = TRUE))
 
 rm(tidy_data_verifiable)
 
 research_2ids <- research_2ids %>% 
         mutate(days_to_RG = as.numeric(as.Date(updated_at) - as.Date(created_at)))
+
+
 ```
 
 ```{r}
@@ -31,7 +34,7 @@ research_2ids <- research_2ids %>%
 
 research_2ids %>% 
         ggplot(aes(x=days_to_RG, y= observation))+
-        geom_line() +
+        geom_step() +
         geom_point(size = 0.5, alpha = 0.5) + 
         labs(x = "Number of days to Research Grade", 
              y = "Number of observations") +
@@ -40,20 +43,141 @@ research_2ids %>%
         theme_minimal()
 ```
 
+Maximum percentage of observations that were identified in the same day as they were uploaded (day of upload counts as 0) was near 40%. Within 1 year, near 90%.
+
 ```{r}
 perc <- research_2ids %>% 
         mutate(perc = observation / n()) %>% 
         select(perc, days_to_RG)
 
-perc %>% filter(perc>=0.5)  %>% slice_min(perc, n = 1) 
+perc %>% filter(days_to_RG == 0)  %>% 
+        slice_max(order_by = perc, n = 1) 
+
+perc %>% 
+        filter(days_to_RG == 365)  %>% 
+        slice_max(perc, n = 1) #used max because I want maximum percentage achieved within 1 year
+
 ```
+
+For those observations that reached RG with exclusively two IDs, 50% had achieved RG after one day, around 60% after 3 days.
 
 ```{r}
-perc %>% filter(perc>=0.6)  %>% slice_min(perc, n = 1) 
+perc %>% 
+        filter(perc >= 0.5)  %>% 
+        slice_min(perc, n = 1) #used min because i want the first day at witch 50% is reached
+                  
+perc %>% 
+        filter(perc >= 0.6)  %>% 
+        slice_min(perc, n = 1)
+
 ```
+
+#### Easier to look at cumulative proportions:
 
 ```{r}
-perc %>% filter(days_to_RG == 365)  %>% slice_min(perc, n = 1) 
+#| code-fold: true
+#Could use ecdf to automatically calculate this but it goes beyond limits of the plot - i think it's because it is a calculated function
+# ggplot(research_2ids, aes(x = days_to_RG)) +
+#         stat_ecdf(geom = "step") +
+#         theme_minimal()
+
+ggplot(perc, aes(x = days_to_RG, y = perc*100)) +
+        geom_step(size = 1) +
+        labs(x = "Days to Research Grade",
+             y = "Cumulative Percentage of Observations") +
+        scale_y_continuous(labels = scales::number_format(suffix = "%")) +
+        scale_x_continuous(breaks = seq(0,5000, by = 365)) +
+        theme_classic(base_size = 14) +
+        theme(axis.title.x = element_text(margin = margin(t = 10 )),
+              axis.title.y = element_text(margin = margin(r = 10)))
 ```
 
-For those observations that reached RG with exclusively two IDs, 50% achieved RG within one day, around 60% within 3 days, 89% within 1 year.
+**"Zoom in" on 30 days**
+
+```{r}
+#| code-fold: true
+#note: if you wanted to use stat_ecdf() on just the first 30 days you must use coord_cartesian and not scale_x_continuous, because scaling will remove data and therefore change function
+ggplot(perc, aes(x = days_to_RG, y = perc*100)) +
+        geom_step() +
+        labs(x = "Days to Research Grade",
+             y = "Cumulative percentage of observations") +
+        coord_cartesian(xlim = c(0, 30)) +
+        scale_y_continuous(breaks = seq(0, 100, by = 10)) +
+        scale_x_continuous(breaks = seq(0, 30, by = 4)) +
+        theme_classic()
+```
+
+### By month
+
+```{r}
+#| code-fold: true
+
+research_2ids_test <- research_2ids %>%
+  arrange(created_at_month, days_to_RG) %>%  # Sort by month first
+  group_by(created_at_month) %>%  # Group by month
+  mutate(observation = row_number()) %>%  # Assign observation numbers within each month
+  ungroup()
+
+ggplot(research_2ids_test, aes(x = days_to_RG, y = observation, 
+                          color = as.factor(created_at_month), 
+                          group = created_at_month)) +
+  geom_line() +
+  #geom_point(size = 0.5, alpha = 0.5) +
+  labs(x = "Number of days to Research Grade", 
+       y = "Number of observations", 
+       color = "Month of upload") +
+  scale_y_continuous(labels = scales::label_number()) +
+  scale_x_continuous(breaks = seq(0, max(research_2ids$days_to_RG), by = 365)) +
+  theme_minimal()
+```
+
+#### Cumulative proportion of observations:
+
+```{r}
+#| code-fold: true
+ggplot(research_2ids_test, aes(x = days_to_RG, color = created_at_month)) +
+        stat_ecdf(geom = "step") +
+  theme_minimal()
+```
+
+**"Zoom-in" on 30 days:**
+
+```{r}
+#| code-fold: true
+ggplot(research_2ids_test, aes(x = days_to_RG, color = created_at_month)) +
+        stat_ecdf(geom = "step") +
+        coord_cartesian(xlim = c(0,30)) +
+        theme_minimal()
+
+```
+
+September, October are the ones for which percentage is smaller on day 0 so it takes longer to reach RG. November also has small %. These are also the ones for which there are a lot of observations (see plot below) so it's likely that they get lost in the influx. However, this logic doesn't match for other months - July has the smallest number of observations but also has small percentage - same(ish) as November. In general second half of the year (July to December) does worse.
+
+```{r}
+#| code-fold: true
+percentage_day0 <- research_2ids %>%
+          group_by(created_at_month) %>%
+          summarise(
+            total_obs = n(),
+            rg_day0 = sum(days_to_RG == 0),
+            percentage_day0 = (rg_day0 / total_obs) *100) %>% 
+          select(created_at_month, percentage_day0, total_obs)
+
+knitr::kable(percentage_day0)
+
+```
+
+Observations per month
+
+```{r}
+#| code-fold: true
+ggplot(research_2ids, aes(x = created_at_month)) +
+        geom_bar()+
+        theme_minimal()
+```
+
+Comparison with observations per month for whole dataset - pattern is the same:
+
+(from EDA_time file)
+
+![](fig%20observations%20and%20uploads%20per%20month-1.png){width="604"}

@@ -1,0 +1,149 @@
+---
+title: "Modelling Photos Taxa"
+format: html
+editor: visual
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+tidy_data <- tidy_data %>% 
+        select("id", "uri", "quality_grade", "created_at", "taxon_id", "n_photos",
+               "microscopy_project","days_since_upload", "cat_notes", "cat_obs_fields",
+               "cat_tags","cat_projects", "created_at_year", "observed_on_year",
+               "created_at_month",
+               "observed_on_month", "country","kingdom", "phylum", "class", "order", "family", "genus","taxon_rank",
+               "sum_pixels")
+               
+```
+
+```{r}
+data <- tidy_data %>% 
+        filter(!is.na(sum_pixels) & n_photos != 0) %>% 
+        mutate(mean_pixels = sum_pixels/n_photos,
+               log_photos = log10(n_photos),
+               log_sp = log10(sum_pixels),
+               log_mp = log10(mean_pixels),
+               rg=as.numeric(quality_grade == "research"),
+               order = as.factor(order), 
+               family = as.factor(family),
+               genus = as.factor(genus) 
+               )
+
+```
+
+### Basiomycota data: order as effect
+
+```{r}
+basidio_data <- data %>% 
+        filter(phylum == "Basidiomycota" & order != "Not identified" ) 
+```
+
+```{r}
+fit_n_photos_b<- glm(rg ~ log_photos, data=basidio_data, family = binomial)
+
+summary(fit_n_photos_b)
+```
+
+```{r}
+fit_n_photos_b_order<- glm(rg ~ log_photos + order, data=basidio_data, family = binomial)
+
+summary(fit_n_photos_b_order)
+```
+
+```{r}
+fit_n_photos_b_order_interaction<- glm(rg ~ log_photos + order + log_photos:order, data=basidio_data, family = binomial)
+
+summary(fit_n_photos_b_order_interaction)
+```
+
+### Boletales and families
+
+```{r}
+boletales_data <- basidio_data %>% 
+        filter(order == "Boletales" & family != "Not identified" ) %>% 
+        mutate(order = as.factor(order)) 
+        
+```
+
+```{r}
+fit_n_photos_boletales<- glm(rg ~ log_photos, data=boletales_data, family = binomial)
+
+summary(fit_n_photos_boletales)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_boletales,type="pred", terms = "log_photos") +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+fit_mp_boletales<- glm(rg ~ log_mp, data=boletales_data, family = binomial)
+
+summary(fit_mp_boletales)
+```
+
+```{r}
+fit_sp_boletales<- glm(rg ~ log_sp, data=boletales_data, family = binomial)
+
+summary(fit_sp_boletales)
+```
+
+```{r}
+fit_n_photos_bol_fam<- glm(rg ~ log_photos + family, data=boletales_data, family = binomial)
+
+summary(fit_n_photos_bol_fam)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_bol_fam,type="pred", terms = c("log_photos", "family")) +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+fit_n_photos_bol_fam_int<- glm(rg ~ log_photos + family + log_photos:family, data=boletales_data, family = binomial)
+
+summary(fit_n_photos_bol_fam_int)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_bol_fam_int,type="pred", terms = c("log_photos", "family")) +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+### Genera of Boletales order
+
+```{r}
+boletales_data %>%  
+        group_by(genus) %>%  
+        summarise(count=n()) %>% 
+        arrange(desc(count))
+```
+
+```{r}
+boletales_data <- boletales_data %>% 
+        filter(genus != "Not identified")
+
+filtered_data <- boletales_data %>%
+        group_by(genus) %>%
+        (n() >= 1000) %>%
+        ungroup() %>% 
+        print(n = Inf)
+
+```
+
+```{r}
+fit_n_photos_bol_gen_int<- glm(rg ~ log_photos + genus + log_photos:genus, data=filtered_data, family = binomial)
+
+summary(fit_n_photos_bol_gen_int)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_bol_gen_int,type="pred", terms = c("log_photos", "genus")) +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```

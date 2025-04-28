@@ -1,0 +1,157 @@
+---
+title: "model_tests_basidiomycota"
+format: html
+editor: visual
+---
+
+```{r}
+
+asco_basidio_data <- data %>% 
+        filter(phylum == "Ascomycota" | phylum == "Basidiomycota" )
+```
+
+```{r}
+fit_n_photos_ab<- glm(rg ~ log_photos, data=asco_basidio_data, family = binomial)
+
+summary(fit_n_photos_ab)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_ab,type="pred", terms = "log_photos") +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+basidio_data <- data %>% 
+        filter(phylum == "Basidiomycota" )
+```
+
+```{r}
+fit_n_photos_b<- glm(rg ~ log_photos, data=basidio_data, family = binomial)
+
+summary(fit_n_photos_b)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_b,type="pred", terms = "log_photos") +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+percentage_data <- basidio_data %>% 
+        mutate(log_photos=round(log_photos,1)) %>% 
+        group_by(log_photos) %>%
+        summarise(research_count = sum(quality_grade == "research"),
+                  total_count = n()) %>%
+        mutate(percentage = (research_count / total_count) * 100) 
+       
+
+ggplot(percentage_data, aes(x = log_photos, y = percentage, size=total_count)) +
+        geom_point() +
+        labs(x = "Number of photos", 
+             y = "RG %",
+             title = "Number photos ~ % RG (method = loess)") +
+        theme_minimal() 
+```
+
+```{r}
+agaricomycetes_data <- data %>% 
+        filter(class == "Agaricomycetes" & order != "Not identified" & family != "Not identified" & genus != "Not identified" )
+```
+
+```{r}
+
+fit_n_photos_agarico <- glm(rg ~ log_photos, data=agaricomycetes_data , family = binomial)
+
+summary(fit_n_photos_agarico)
+```
+
+```{r}
+percentage_data <- agaricomycetes_data %>% 
+        mutate(log_photos=round(log_photos,1)) %>% 
+        group_by(log_photos) %>%
+        summarise(research_count = sum(quality_grade == "research"),
+                  total_count = n()) %>%
+        mutate(percentage = (research_count / total_count) * 100) 
+       
+
+ggplot(percentage_data, aes(x = log_photos, y = percentage, size=total_count)) +
+        geom_point() +
+        labs(x = "Number of photos", 
+             y = "RG %",
+             title = "Number photos ~ % RG (method = loess)") +
+        theme_minimal() 
+```
+
+```{r}
+boletales_data <- data %>% 
+        filter(order == "Boletales" )
+```
+
+```{r}
+
+fit_n_photos_boletales <- glm(rg ~ log_photos, data=boletales_data , family = binomial)
+
+summary(fit_n_photos_boletales)
+```
+
+```{r}
+percentage_data <- boletaceae_data %>% 
+        mutate(log_photos=round(log_photos,1)) %>% 
+        group_by(log_photos) %>%
+        summarise(research_count = sum(quality_grade == "research"),
+                  total_count = n()) %>%
+        mutate(percentage = (research_count / total_count) * 100) 
+       
+
+ggplot(percentage_data, aes(x = log_photos, y = percentage, size=total_count)) +
+        geom_point() +
+        labs(x = "Number of photos", 
+             y = "RG %",
+             title = "Number photos ~ % RG (method = loess)") +
+        theme_minimal() 
+```
+
+```{r}
+fit_n_photos_order <- glm(rg ~ log_photos + order, data=agaricomycetes_data , family = binomial)
+
+summary(fit_n_photos_order)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_order,type="pred", terms = c("log_photos", "order")) +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+phallales_data <- data %>% 
+        filter(order == "Phallales" )
+```
+
+```{r}
+fit_n_photos_phallales <- glm(rg ~ log_photos, data=phallales_data , family = binomial)
+
+summary(fit_n_photos_phallales)
+```
+
+```{r}
+sjPlot::plot_model(fit_n_photos_phallales,type="pred", terms = "log_photos") +
+        scale_y_continuous(limits=c(0,1))+
+        theme_minimal()
+```
+
+```{r}
+boletaceae_data <- data %>% 
+        filter(family == "Boletaceae")
+
+boletaceae_data %>%  group_by(genus) %>%  summarise(count=n()) %>%  arrange(desc(count))
+```
+
+```{r}
+fit_n_photos_boletaceae <- glm(rg ~ log_photos + genus + log_photos:genus, data=boletaceae_data , family = binomial)
+
+summary(fit_n_photos_boletaceae)
+```

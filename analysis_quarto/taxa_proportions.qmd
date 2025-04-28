@@ -1,0 +1,97 @@
+---
+title: "RG comparison"
+format: html
+editor: visual
+---
+
+```{r}
+#| code-fold: true
+#| output: false
+library(tidyverse)
+
+taxa_proportions <- read_csv("../data/iNat_prop_global_europe.csv")
+
+taxa_proportions_all <- taxa_proportions %>% 
+        mutate(prop_RG_fungi = n_fungi_research/n_fungi_all,
+               prop_RG_plants = n_plants_research/n_plants_all,
+               prop_RG_animals = n_animals_research/n_animals_all) %>% 
+        pivot_longer(cols = starts_with("prop_RG_"), 
+               names_to = "Taxon", 
+               values_to = "Proportion") %>%
+        mutate(Taxon = str_replace_all(Taxon, "prop_RG_", ""))
+
+taxa_proportions_verifiable <-taxa_proportions %>% 
+        mutate(prop_RG_fungi_verifiable = n_fungi_research/n_fungi_verifiable,
+               prop_RG_plants_verifiable = n_plants_research/n_plants_verifiable,
+               prop_RG_animals_verifiable = n_animals_research/n_animals_verifiable) %>% 
+        pivot_longer(cols = starts_with("prop_RG_"), 
+               names_to = "Taxon", 
+               values_to = "Proportion") %>%
+        mutate(Taxon = str_replace_all(Taxon, "prop_RG_", ""))
+
+                
+
+```
+
+```{r}
+ggplot(taxa_proportions_all,aes(x = fct_reorder(Taxon, Proportion, .desc = TRUE), y = Proportion, fill = Taxon)) +
+        geom_col() +
+        facet_wrap(~region) +
+        labs(x = "Taxon", 
+             y = "Percentage of RG observations") +
+        scale_fill_manual(values = c("animals" = "skyblue2",   # Blue
+                               "plants" = "darkolivegreen3",    # Green
+                               "fungi" = "indianred")) +  # Pink
+        theme_minimal() +
+        theme(legend.position = "none") 
+
+```
+
+```{r}
+library(ggplot2)
+color_df <- data.frame(
+  Color = colors(), 
+  x = rep(1:29, each = 23)[1:657],  # Adjust grid size to match 657 colors
+  y = rep(1:23, times = 29)[1:657]
+)
+
+# Plot colors with names
+ggplot(color_df, aes(x, y, fill = Color)) +
+  geom_tile() +
+  scale_fill_identity() +
+  theme_void() +
+  geom_text(aes(label = Color), size = 2.5, angle = 45, hjust = 0) +
+  theme(legend.position = "none")
+```
+
+```{r}
+ggplot(taxa_proportions_verifiable,aes(x = fct_reorder(Taxon, Proportion, .desc = TRUE), y = Proportion, fill = Taxon)) +
+        geom_col() +
+        facet_wrap(~region) +
+        labs(x = "Taxon", 
+             y = "Percentage of RG observations") +
+        scale_fill_manual(values = c("animals" = "skyblue2",   # Blue
+                               "plants" = "darkolivegreen3",    # Green
+                               "fungi" = "indianred")) +  # Pink
+        theme_minimal() +
+        theme(legend.position = "none") 
+```
+
+```{r}
+taxa_proportions_all %>% 
+        filter(region == "europe") %>% 
+        ggplot(aes(x = fct_reorder(Taxon, Proportion, .desc = TRUE), y = Proportion, fill = Taxon)) +
+                geom_col(width = 0.7) +
+                labs(x = "Taxon", 
+                     y = "Percentage of RG observations") +
+                scale_fill_manual(values = c("animals" = "skyblue2",   # Blue
+                                       "plants" = "darkolivegreen3",    # Green
+                                       "fungi" = "indianred")) +  # Pink
+                scale_y_continuous(labels = percent_format(accuracy = 1)) + 
+                theme_classic(base_size = 14) +
+                theme(axis.title.x = element_text(margin = margin(t = 10)),
+                      axis.title.y = element_text(margin = margin(r = 10)),
+                      legend.position = "none") 
+
+
+```

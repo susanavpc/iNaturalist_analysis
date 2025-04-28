@@ -1,0 +1,317 @@
+---
+title: "Ordered tables of community variables"
+format: html
+editor: visual
+---
+
+```{r}
+#| code-fold: true
+#| output: false
+library(tidyverse)
+library(knitr)
+country_obser_iders <- read_csv("../data/country_obser_iders.csv") %>% 
+        filter(country != "Vatican City" & country != "Monaco")
+
+region_obser_iders <-  read_csv("../data/region_obser_iders.csv")
+
+country_population <- read_csv("../data/pop_data_countries.csv")  %>% 
+        filter(country != "Vatican City" & country != "Monaco")
+
+country_obser_iders <- left_join(country_obser_iders,country_population, by = "country") 
+
+country_obser_iders <- country_obser_iders %>% 
+        mutate(n_obser_normalised = n_observers / population_2023,
+               prop_obsers_iders = n_observers / n_identifiers,
+               n_iders_normalised = n_identifiers / population_2023)
+
+region_fungi_prop <- read_csv("../data/region_fungi_prop.csv")
+
+country_fungi_prop <- read_csv("../data/country_fungi_prop.csv") %>% 
+        filter(country != "Vatican City" & country != "Monaco")
+```
+
+#### 1. Number of observers per country:
+
+```{r}
+#| code-fold: true
+country_obser_iders %>%
+  select(country, n_observers) %>%
+  arrange(desc(n_observers)) %>% 
+  kable()
+         
+ 
+```
+
+#### 2. N_observes normalised to population size per country (n_observers / population_2023):
+
+```{r}
+#| code-fold: true
+country_obser_iders %>%
+  select(country, n_obser_normalised) %>%
+  arrange(desc(n_obser_normalised)) %>% 
+  kable()
+
+
+```
+
+#### 3. Number of identifiers per country
+
+```{r}
+#| code-fold: true
+country_obser_iders %>%
+  select(country, n_identifiers) %>%
+  arrange(desc(n_identifiers)) %>% 
+  kable()
+```
+
+#### Number of identifiers per country (normalised)
+
+```{r}
+#| code-fold: true
+country_obser_iders %>%
+  select(country, n_iders_normalised) %>%
+  arrange(desc(n_iders_normalised)) %>% 
+  kable()
+```
+
+#### 4. Proportion of IDers to observers
+
+```{r}
+#| code-fold: true
+country_obser_iders %>%
+  select(country, prop_iders_obsers) %>%
+  arrange(desc(prop_iders_obsers)) %>% 
+  kable()
+```
+
+#### 5. Proportion of fungi in GBIF filtered observations
+
+```{r}
+#| code-fold: true
+country_fungi_prop %>%
+        filter(platform == "gbif") %>%
+        select(country, prop_fungi) %>%
+        arrange(desc(prop_fungi)) %>% 
+        kable()
+```
+
+#### iNat filtered observations
+
+```{r}
+#| code-fold: true
+
+country_fungi_prop %>%
+        filter(platform == "inat") %>%
+        select(country, prop_fungi) %>%
+        arrange(desc(prop_fungi)) %>% 
+        kable()
+```
+
+#### 7. Number of mycological societies per country
+
+```{r}
+#| code-fold: true
+#| warning: false
+n_myco_orgs <- read_csv2("../data/europe_mycological_orgs.csv")
+
+n_myco_orgs[n_myco_orgs == "no data" | n_myco_orgs == "not applicable"] <- NA
+
+#remove countries that were in mycological societies manuscript but not in iNat polygon 
+countries_remove <- setdiff( n_myco_orgs$country, country_obser_iders$country)
+n_myco_orgs <- n_myco_orgs %>% 
+        filter(!country %in% countries_remove)
+
+n_myco_orgs$n_orgs <- as.numeric(n_myco_orgs$n_orgs)
+n_myco_orgs$year_oldest_org <- as.numeric(n_myco_orgs$year_oldest_org)
+n_myco_orgs$log_n_orgs <- as.numeric(gsub(",", ".", n_myco_orgs$log_n_orgs))
+
+n_myco_orgs %>%
+        select(country, n_orgs) %>%
+        arrange(desc(n_orgs)) %>% 
+        kable()
+```
+
+#### 8. Number of CC projects per country
+
+```{r}
+#| code-fold: true
+#| warning: false
+n_cc_proj <- read_csv2("../data/europe_cc_projects.csv")
+
+#remove countries that were in mycological societies manuscript but not in iNat polygon 
+countries_remove <- setdiff(n_cc_proj$country, country_obser_iders$country)
+n_cc_proj <- n_cc_proj %>% 
+        filter(!country %in% countries_remove)
+
+
+n_cc_proj %>%
+        select(country, n_cc_projects) %>%
+        arrange(desc(n_cc_projects)) %>% 
+        kable()
+```
+
+### 9. Number of main observers per country
+
+```{r}
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv") %>% 
+        filter(country != "Vatican City" & country != "Monaco") %>% 
+        select(country, user_id, n_identifications, n_identifiers)
+        
+
+# user - country combinations 
+user_country_counts <- tidy_data %>%
+        group_by(user_id, country) %>%
+        summarise(count = n(), .groups = "drop")
+
+
+# Keep the most frequent country per user, allowing ties
+main_country_per_user <- user_country_counts %>%
+        group_by(user_id) %>%
+        slice_max(count, n = 1, with_ties = TRUE) %>% #keep only main one except for ties
+        mutate(tie = n() > 1) %>%  #add T/F tag to ties
+        ungroup()
+
+#count n times ties occured
+countries_ties <- main_country_per_user  %>%
+        filter(tie == TRUE) %>% 
+        summarise(num_users_with_ties = n_distinct(user_id))
+
+#for some users ties occur more than once 
+user_tie_count <- main_country_per_user %>%
+     filter(tie == TRUE) %>%  # Keep only rows with ties
+     group_by(user_id) %>%   # Group by user_id
+     summarise(tie_count = n())
+
+
+n_main_users_per_country <- main_country_per_user %>%
+  group_by(country) %>%
+  summarise(user_count = n(), .groups = "drop")
+
+n_main_users_per_country <- left_join(n_main_users_per_country,country_population, by = "country") 
+
+n_main_users_per_country <- n_main_users_per_country %>% 
+        mutate(n_main_obsers_normalised = user_count / population_2023)
+```
+
+#### 10. Average number of identifiers and identifications per observation per country
+
+```{r}
+avg_identifiers_obs<- tidy_data %>% 
+        group_by(country) %>%
+        summarise(avg_n_identifiers = mean(n_identifiers))
+
+
+avg_identifications_obs<- tidy_data %>% 
+        group_by(country) %>%
+        summarise(avg_n_identifications = mean(n_identifications))
+```
+
+#### Single comparison table (missing data from edible species per country)
+
+```{r}
+#| code-fold: true
+
+n_observers <- country_obser_iders %>%
+        arrange(desc(n_observers)) %>% 
+        select(country) %>%  
+        rename(n_observers = country)
+
+n_obser_normalised <- country_obser_iders %>%
+        arrange(desc(n_obser_normalised)) %>% 
+        select(country) %>% 
+        rename(n_obser_normalised = country)
+
+n_identifiers <- country_obser_iders %>%
+        arrange(desc(n_identifiers)) %>% 
+        select(country) %>%
+        rename(n_identifiers = country)
+
+n_iders_normalised <- country_obser_iders %>%
+        arrange(desc(n_iders_normalised)) %>% 
+        select(country) %>%
+        rename(n_iders_normalised = country)
+
+prop_iders_obsers <- country_obser_iders %>%
+        arrange(desc(prop_iders_obsers)) %>% 
+        select(country) %>%
+        rename(prop_iders_obsers = country)
+
+prop_fungi_gbif <- country_fungi_prop %>%
+        filter(platform == "gbif") %>%
+        arrange(desc(prop_fungi)) %>% 
+        select(country) %>%
+        rename(prop_fung_gbif = country)
+
+prop_fungi_inat <-country_fungi_prop %>%
+        filter(platform == "inat") %>%
+        arrange(desc(prop_fungi)) %>% 
+        select(country) %>%
+        rename(prop_fung_inat = country)
+
+n_orgs <- n_myco_orgs %>%
+        arrange(desc(n_orgs)) %>% 
+        select(country) %>%
+        rename(n_orgs = country)
+
+log_n_orgs <- n_myco_orgs %>%
+        arrange(desc(log_n_orgs)) %>% 
+        select(country) %>%
+        rename(log_n_orgs = country)
+
+n_cc_proj <- n_cc_proj %>%
+        arrange(desc(n_cc_projects)) %>% 
+        select(country) %>%
+        rename(n_cc_proj= country)
+
+n_main_observers <- n_main_users_per_country %>%
+        arrange(desc(user_count)) %>% 
+        select(country) %>%
+        rename(n_main_observers= country)
+
+n_main_observers_norm <- n_main_users_per_country %>% 
+        arrange(desc(n_main_obsers_normalised)) %>% 
+        select(country) %>%
+        rename(n_main_observers_norm = country)
+
+
+avg_identifiers_obs <- avg_identifiers_obs %>%
+        arrange(desc(avg_n_identifiers)) %>% 
+        select(country) %>%
+        rename(avg_n_identifiers = country)
+
+avg_identifications_obs <- avg_identifications_obs  %>%
+        arrange(desc(avg_n_identifications)) %>% 
+        select(country) %>%
+        rename(avg_n_identifications = country)
+
+
+n_observers <- n_observers$n_observers
+n_obser_normalised <- n_obser_normalised$n_obser_normalised
+n_identifiers <- n_identifiers$n_identifiers
+n_iders_normalised <- n_iders_normalised$n_iders_normalised
+prop_iders_obsers <- prop_iders_obsers$prop_iders_obsers
+prop_fungi_gbif <- prop_fungi_gbif$prop_fung_gbif
+prop_fungi_inat <- prop_fungi_inat$prop_fung_inat
+n_orgs <- n_orgs$n_orgs
+log_n_orgs <- log_n_orgs$log_n_orgs
+n_cc_proj <- n_cc_proj$n_cc_proj
+n_main_observers <- n_main_observers$n_main_observers
+n_main_observers_norm <- n_main_observers_norm$n_main_observers_norm 
+avg_identifiers_obs <- avg_identifiers_obs$avg_n_identifiers
+avg_identifications_obs <- avg_identifications_obs$avg_n_identifications
+
+
+length(n_orgs) <- length(n_observers)
+length(log_n_orgs) <- length(n_observers)
+length(n_cc_proj) <- length(n_observers)
+
+
+country_orders <- data.frame(index = seq_along(n_observers), n_observers, n_obser_normalised, n_main_observers, n_main_observers_norm, n_identifiers, n_iders_normalised,
+           prop_iders_obsers, prop_fungi_gbif, prop_fungi_inat, n_orgs,
+           log_n_orgs, n_cc_proj, avg_identifiers_obs, avg_identifications_obs, 
+           index = seq_along(n_observers))
+
+kable(country_orders)
+
+writexl::write_xlsx(country_orders, "country_orders.xlsx")
+```

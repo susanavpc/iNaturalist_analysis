@@ -1,0 +1,469 @@
+---
+title: "EDA - forgotten observations"
+format: html
+editor: visual
+---
+
+Idea: check how many IDs observations have (IDs from user other than observer \>0) to see identify the potential *forgotten observations* - Have they not moved to RG due to disagreements or because no one has looked at them? Could vary between regions and taxonomy and help us identify hotspots of identification success.
+
+```{r}
+#| code-fold: true 
+#| echo: false
+#| warning: false
+
+library(tidyverse)
+library(patchwork)
+
+
+tidy_data <- read_csv("../data/tidy_data/tidy_data_verifiable.csv")
+rank_order <- readRDS("rank_order.RDS")
+
+country_obser_iders <- read_csv("../data/country_obser_iders.csv")
+
+
+#order taxonomic levels
+tidy_data <- tidy_data %>%
+        mutate(taxon_rank = factor(taxon_rank, levels = rank_order, ordered = TRUE))
+```
+
+```{r}
+#| code-fold: true
+
+#categorise needs_id observations according to presence of community id 
+data_community <- tidy_data %>% 
+        filter(quality_grade == "needs_id") %>% 
+        mutate(community_ids = if_else(n_identifiers == 0, "No community IDs", "IDed by community"))
+
+#calculate proportion 
+data_community %>% 
+        count(community_ids) %>% 
+        mutate(proportion = n / sum(n)) %>% 
+        knitr::kable()
+
+```
+
+In total there are 991 559 needs id observations in Europe that have received no identifications other than the one suggested by the observer, which corresponds to approximately 65% of needs_id observations. This does not mean that no one has looked at it or commented, but there have been no suggestions of IDs. (corresponds to around 39% of total verifiable obs)
+
+For reference, most needs ID observations are at species and genus level. For each rank, proportion of observations with no community ID is not consistent:
+
+```{r}
+#| code-fold: true
+ggplot(data_community,aes(x = taxon_rank, fill= community_ids))+
+        geom_bar()+
+        labs(x = "Taxon rank", 
+             y = "No. Needs ID observations",
+             fill = "Community IDs") +
+        theme_classic(base_size = 14)+
+        scale_y_continuous(labels = scales::label_number())+
+        theme(axis.text.x = element_text(angle = 45,
+                                         hjust = 1, 
+                                         margin = margin(t = 10)),
+              axis.title.y = element_text(margin = margin(r = 10)),
+              legend.position = "bottom")
+
+
+```
+
+```{r}
+data_community %>% 
+        mutate(taxon_rank = case_when(
+                taxon_rank %in% c("kingdom") ~ "Kingdom",
+                taxon_rank %in% c("phylum", "subphylum") ~ "Phylum",
+                taxon_rank %in% c("class", "subclass") ~ "Class",
+                taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species"),
+        taxon_rank = factor(taxon_rank, levels = c( 
+                "Kingdom", "Phylum", "Class", "Order", 
+                "Family", "Genus", "Species"))) %>% 
+                
+        ggplot(aes(x = taxon_rank, fill= community_ids))+
+                geom_bar()+
+                labs(x = "Taxon rank", 
+                     y = "No. Needs ID observations",
+                     fill = "Community IDs") +
+                theme_classic(base_size = 14)+
+                scale_y_continuous(labels = scales::label_number())+
+                theme(axis.text.x = element_text(angle = 45,
+                                                 hjust = 1, 
+                                                 margin = margin(t = 10)),
+                      axis.title.y = element_text(margin = margin(r = 10)),
+                      legend.position = "bottom")
+
+```
+
+Proportion of observations with no community IDs per rank:
+
+```{r}
+#| code-fold: true
+#two alternative graphs to show proportion per taxon rank
+# ggplot(data_community,aes(x = taxon_rank, fill= community_ids))+
+#         geom_bar(position = "fill")+
+#         labs(title = "Proportion of Needs ID observations with community IDs per taxon rank",
+#              x = "Taxon rank", 
+#              y = "Proportion of observations") +
+#         theme_minimal()+
+#         theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#               axis.title.y = element_text(margin = margin(r = 10)),
+#               legend.position = "bottom")
+
+#calculate proportion of no community ids per taxon rank
+data_prop_taxon <- data_community %>%
+  group_by(taxon_rank) %>%
+  summarise(prop_data_community = sum(community_ids == "No community IDs") / n())
+
+ggplot(data_prop_taxon,aes(x = taxon_rank, y=prop_data_community, fill= taxon_rank))+
+        geom_col()+
+        scale_fill_viridis_d()+
+        scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+        labs(x = "Taxon rank", 
+             y = "Needs ID obs. without IDs (%)") +
+        theme_classic(base_size = 14)+
+        theme(axis.text.x = element_text(angle = 45,
+                                         hjust = 1, 
+                                         margin = margin(t = 10)),
+              axis.title.y = element_text(margin = margin(r = 10)),
+              legend.position = "none")  
+
+```
+
+```{r}
+
+data_prop_taxon_grouped<- data_community %>% 
+        mutate(taxon_rank = case_when(
+                taxon_rank %in% c("kingdom") ~ "Kingdom",
+                taxon_rank %in% c("phylum", "subphylum") ~ "Phylum",
+                taxon_rank %in% c("class", "subclass") ~ "Class",
+                taxon_rank %in% c("order", "superorder", "infraorder", "suborder") ~ "Order",
+                taxon_rank %in% c("superfamily", "family", "subfamily",
+                                         "tribe", "subtribe", "supertribe") ~ "Family",
+                taxon_rank %in% c("genus", "subgenus", "section", "subsection") ~ "Genus",
+                taxon_rank %in% c("species", "subspecies", "variety", "form", "complex") ~ "Species"),
+        taxon_rank = factor(taxon_rank, levels = c( 
+                "Kingdom", "Phylum", "Class", "Order", 
+                "Family", "Genus", "Species"))) %>% 
+        group_by(taxon_rank) %>%
+        summarise(prop_data_community = sum(community_ids == "No community IDs") / n())
+        
+ggplot(data_prop_taxon_grouped,aes(x = taxon_rank, y=prop_data_community, fill= taxon_rank))+
+        geom_col()+
+        scale_fill_viridis_d()+
+        scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+        labs(x = "Taxon rank", 
+             y = "Needs ID obs. without IDs (%)") +
+        theme_classic(base_size = 14)+
+        theme(axis.text.x = element_text(angle = 45,
+                                         hjust = 1),
+              legend.position = "none")  
+                
+```
+
+The lack of identifications is most prevalent in observations currently as species-level or below, as well as at kingdom level. I took a quick look at some randomly chosen observations at species and kingdom level.
+
+At kingdom level some had since been identified to a lower level like Phylum. Several were of things that somewhat looked like a lichen or a fungi, but are less familiar to most people and therefore more difficult to identify e.g. dark marks/crust on bark or tiny blobs (could be fungi or slime mold to me ).
+
+On the other hand, some random observations at species level were very good detailed observations, so the only explanation I can find for them not being IDed is lack of expert identifiers. They are easy to confirm to at least genus level, but I think people tend to not identify to a higher level than the one that has been suggested unless they disagree on species level.
+
+### How does it change between different taxa?
+
+(plots ordered by number of observations per taxon)
+
+Proportion is not very different between Phyla (with exception of phyla with very few observations - number of observations per phylum on top of columns):
+
+```{r}
+#| code-fold: true
+
+data_counts <- data_community %>% 
+  filter(phylum != "Not identified") %>% 
+  count(phylum)
+
+data_community %>% 
+        filter(phylum != "Not identified") %>% 
+        ggplot(aes(x = fct_infreq(phylum), fill= community_ids))+
+                geom_bar(position = "fill")+
+                geom_text(data = data_counts,
+                                  aes(x = fct_infreq(phylum), y = 1, label = n),
+                                  inherit.aes = FALSE,
+                                  vjust = -0.5, size = 3, color = "black") +
+                labs(title = "Proportion of Needs ID observations with community IDs per phylum",
+                     x = "Taxon rank", 
+                     y = "Proportion of observations") +
+                theme_classic()+
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                      axis.title.y = element_text(margin = margin(r = 10)),
+                      legend.position = "bottom")
+data_community %>% 
+        filter(phylum != "Not identified") %>% 
+        ggplot(aes(x = fct_infreq(phylum), fill= community_ids))+
+                geom_bar(position = "fill")+
+                geom_text(data = data_counts,
+                                  aes(x = fct_infreq(phylum), y = 1, label = n),
+                                  inherit.aes = FALSE,
+                                  vjust = -0.5, size = 3, color = "black") +
+        scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+                labs( x = "Taxon rank", 
+                     y = "Percentage of observations") +
+                theme_classic() +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                      legend.position = "bottom")
+```
+
+Focusing on Basidio and Ascomycota - how does this change between classes?
+
+(Classes ordered by number of observations. Only showing number of observations below 1000 on top of columns)
+
+```{r}
+#| code-fold: true
+
+data_counts <- data_community %>% 
+  filter(phylum %in% c("Ascomycota", "Basidiomycota")) %>% 
+  filter(class != "Not identified") %>% 
+  count(phylum, class) %>% 
+  filter(n<1000)
+        
+data_community %>% 
+        filter(phylum == "Ascomycota" | phylum == "Basidiomycota" ) %>% 
+        filter(class != "Not identified") %>% 
+        ggplot(aes(x = fct_infreq(class), fill= community_ids)) +
+                geom_bar(position = "fill")+
+                geom_text(data = data_counts,
+                          aes(x = fct_infreq(class), y = 1, label = n),
+                          inherit.aes = FALSE,
+                          vjust = -0.5, size = 3, color = "black") +  
+                labs(x = "Class", 
+                     y = "Prop. Needs ID observations") +
+                theme_minimal()+
+                theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                      axis.title.y = element_text(margin = margin(r = 10)),
+                      legend.position = "bottom") +
+                facet_grid(~ phylum, scales = "free_x", space = "free_x")
+```
+
+Same plots, but ordered by proportion of observations with no community IDs:
+
+```{r}
+#| code-fold: true
+data_prop_basidiomycota <- data_community %>%
+        filter(phylum == "Basidiomycota" & class != "Not identified") %>% 
+        group_by(class) %>%
+        summarise(prop= sum(community_ids == "No community IDs") / n())
+
+data_counts <- data_community %>% 
+  filter(phylum == "Basidiomycota") %>% 
+  filter(class != "Not identified") %>% 
+  count(class)
+
+ggplot(data_prop_basidiomycota, aes(x = fct_reorder(class, prop), y= prop))+
+        geom_col()+
+        geom_text(data = data_counts,
+                                  aes(x = fct_infreq(class), y = 1, label = n),
+                                  inherit.aes = FALSE,
+                                  vjust = -0.5, size = 3, color = "black") +
+        labs(title = "Basidiomycota",
+             x = "Taxon rank", 
+             y = "Prop. Needs ID obs. without community IDs") +
+        theme_minimal() +
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))
+
+data_prop_ascomycota <- data_community %>%
+        filter(phylum == "Ascomycota" & class != "Not identified") %>% 
+        group_by(class) %>%
+        summarise(prop= sum(community_ids == "No community IDs") / n())
+
+data_counts <- data_community %>% 
+  filter(phylum == "Ascomycota") %>% 
+  filter(class != "Not identified") %>% 
+  count(class)
+
+ggplot(data_prop_ascomycota, aes(x = fct_reorder(class, prop), y= prop))+
+        geom_col()+
+        geom_text(data = data_counts,
+                                  aes(x = fct_infreq(class), y = 1, label = n),
+                                  inherit.aes = FALSE,
+                                  vjust = -0.5, size = 3, color = "black") +
+        labs(title = "Ascomycota",
+             x = "Taxon rank", 
+             y = "Prop. Needs ID obs. without community IDs") +
+        theme_minimal() +
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))
+```
+
+Question: Should I cut out classes with small number of observations, since proportion would not be meaningful? What should the threshold be? 10 ? 100?
+
+For Basidiomycota (excluding classes with less than 100 obs.):
+
+-   Classes with smaller proportion are plant pathogens, including smuts, rusts and gall-forming fungi (Pucciniomycetes, Ustilaginomycetes, Exobasidiomycetes)
+
+-   Followed by the more typical mushroom-forming fungi (Agaricomycetes, Tremellomycetes, Dacrymycetes)
+
+-   Highest proportion without community IDs for Atractiellomycetes, comprised mostly by obs of 2 species (Phleogena faginea that looks like a slime mould and Helicogloea compressa that has small gelatinous fruting bodies)
+
+For Ascomycota:
+
+-   Smaller proportion in Pezizomycetes, that includes most well known mushroom-forming fungi in Ascomycota.
+
+-   Followed by Laboulbeniomycetes, that form associations with arthropods - could it be result of Danny Haelewaters' influence?
+
+-   Folowed by Lecanoromycetes - mostly lichens.
+
+-   Highest proportion for Arthoniomycetes (mostly lichens), Taphrinomycetes (mostly plant pathogens) and Dothideomycetes (plant pathogens but also lichens and others)
+
+Looking at Agaricomycetes - smaller proportions are for the more typical mushroom-forming orders. Could highlight need for more taxonomists in the platform, with more knowledge outside more well known taxa?
+
+```{r}
+#| code-fold: true
+data_counts <- data_community %>% 
+        filter(class == "Agaricomycetes") %>% 
+        filter(order != "Not identified") %>% 
+        count(order) %>% 
+        filter(n<1000)
+
+data_prop_agaricomycetes <- data_community %>%
+        filter(class == "Agaricomycetes" & order != "Not identified") %>% 
+        group_by(order) %>%
+        summarise(prop= sum(community_ids == "No community IDs") / n())
+
+
+ggplot(data_prop_agaricomycetes, aes(x = fct_reorder(order, prop), y= prop))+
+        geom_col()+
+        geom_text(data = data_counts,
+                                  aes(x = fct_infreq(order), y = 1, label = n),
+                                  inherit.aes = FALSE,
+                                  vjust = -0.5, size = 3, color = "black") +
+        labs(title = "Agaricomycetes",
+             x = "Taxon rank", 
+             y = "Prop. Needs ID obs. without community IDs") +
+        theme_minimal() +
+        theme(legend.position = "none",
+              axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))
+```
+
+### How does it change between countries?
+
+Second plot has number of needs id observations per country for reference. Tried ordering the plot for n_identifiers per country but don't see a pattern.
+
+```{r}
+#| code-fold: true
+
+#calculate proportion of no community ids per country
+data_prop_country <- data_community %>%
+  group_by(country) %>%
+  summarise(prop_data_community = sum(community_ids == "No community IDs") / n())
+
+data_prop_country <- left_join(data_prop_country, country_obser_iders, by = "country")
+
+
+ggplot(data_prop_country,aes(x = fct_reorder(country, prop_data_community), y=prop_data_community))+
+        geom_col()+
+        labs(x = "Country", 
+             y = "Needs ID obs. without IDs (%)") +
+        theme_minimal(base_size = 12)+
+        scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+data_prop_country %>% 
+        filter(n_observers >= 1000) %>% 
+        ggplot(aes(x = fct_reorder(country, prop_data_community), y=prop_data_community))+
+                geom_col()+
+                labs(x = "Country", 
+                     y = "Needs ID obs. without IDs (%)") +
+                theme_minimal(base_size = 12)+
+                scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+                theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+data_prop_country %>% 
+        filter(n_observers >= 100) %>% 
+        ggplot(aes(x = fct_reorder(country, n_identifiers), y = prop_data_community))+
+                geom_col() +
+                labs(x = "Country", 
+                     y = "Needs ID obs. without IDs (%)") +
+                theme_minimal(base_size = 12)+
+        scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+order_prop_country <- data_prop_country %>%
+  arrange(prop_data_community)
+
+data_community$country <- factor(data_community$country, levels = order_prop_country$country)
+ggplot(data_community,aes(x = country))+
+        geom_bar()+
+        labs( x = NULL, 
+              y = "No. Needs ID observations",
+              title = "No. Needs ID observations per country")+
+        theme_classic() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))+
+        scale_y_continuous(labels = scales::label_number())
+
+```
+
+Smaller proportions seem to happen for smaller countries, that also have less observations. However, other than highlighting countries where this is more prevalent, I'm not sure what to do with it.
+
+### How does it change between months?
+
+Checking because of time to RG plot that changed with months. But it's very similar between them.
+
+```{r}
+#| code-fold: true
+
+#calculate proportion of no community ids per country
+data_community <- data_community %>%
+        mutate(created_at_month = factor(created_at_month, 
+                                         levels = month.abb, 
+                                         ordered = TRUE))
+
+data_prop_month <- data_community %>%
+  group_by(created_at_month) %>%
+  summarise(prop_data_community = sum(community_ids == "No community IDs") / n())
+
+
+ggplot(data_prop_month,aes(x = created_at_month, y=prop_data_community))+
+        geom_col()+
+        labs(x = "Month", 
+             y = "Prop. Needs Id obs. without community IDs") +
+        theme_minimal()+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))
+
+
+ggplot(data_community,aes(x = created_at_month))+
+        geom_bar()+
+        labs( x = NULL, 
+              y = "No. Needs ID observations",
+              title = "No. Needs ID observations per month")+
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.title.y = element_text(margin = margin(r = 10)))+
+        scale_y_continuous(labels = scales::label_number())
+```
+
+#### Some small issues (to ignore):
+
+There are 5 observations that had `n_identifications == 0` (list below). This should mean neither the observer nor the community suggested IDs. If you check the observation links this is what seems to have happened, there are no IDs at all. However, this does not make sense because this dataset was filtered by fungi, and they are indeed tagged as a fungi, at class, genus or species rank so they have been identified even if it is not showing up. Perhaps the user that identified them deleted their account making the IDs disappear, but the name for the observation remains?
+
+```{r}
+#| code-fold: true
+
+tidy_data %>%  
+        filter(n_identifications==0) %>%
+        select(n_identifiers,n_identifications, uri) %>% 
+        knitr::kable()
+```
+
+Strangely, there are 4 observations that are RG despite not having IDs other than the one suggested by the observer (below) - could have the second one have been deleted and the grade does not update?
+
+```{r}
+#| code-fold: true
+
+tidy_data %>%
+        filter( quality_grade == "research" & n_identifiers==0 ) %>%
+        select(n_identifiers, n_identifications, uri) %>% 
+        knitr::kable()
+```
