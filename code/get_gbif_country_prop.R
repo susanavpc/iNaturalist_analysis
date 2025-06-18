@@ -5,6 +5,10 @@
 library(rgbif)
 library(tidyverse)
 
+
+# list basis of record excluding FOSSIL_SPECIMEN, LITERATURE, LIVING_SPECIMEN, MATERIAL_CITATION, UNKNOWN
+basis_record<- "HUMAN_OBSERVATION; MACHINE_OBSERVATION; MATERIAL_SAMPLE; OBSERVATION; OCCURRENCE; PRESERVED_SPECIMEN"
+
 # get country iso codes (alpha2) to query gbif ----
 countries_iso <- read_csv("data/country_iso_codes.csv")
 data_countries <- read_csv("data/data_country_names.csv")
@@ -28,50 +32,8 @@ missing_country_codes <- data.frame(
 
 country_codes <- rbind(country_codes, missing_country_codes)
 
-#exclude records from FOSSIL_SPECIMEN, LITERATURE, LIVING_SPECIMEN, MATERIAL_CITATION, UNKNOWN
-basis_record<- "HUMAN_OBSERVATION; MACHINE_OBSERVATION; MATERIAL_SAMPLE; OBSERVATION; OCCURRENCE; PRESERVED_SPECIMEN"
 
-# get data from gbif per country ----
-
-gbif_data <- data.frame(
-        country_iso = character(),
-        n_fungi = numeric(),
-        n_plants = numeric(),
-        n_animals = numeric(),
-        prop_fungi = numeric())
-
-for (i in country_codes$country_iso) {
-        
-        # count occurrences 
-        n_fungi <- occ_count(scientificName = "Fungi", country = i)
-        n_plants <- occ_count(scientificName = "Plantae", country = i)
-        n_animals <- occ_count(scientificName = "Animalia", country = i)
-        
-        # calculate proportion of fungi
-        prop_fungi <- n_fungi / (n_fungi + n_plants + n_animals)
-        
-        gbif_data <- rbind(gbif_data, data.frame(
-                country_iso = i,
-                n_fungi = n_fungi,
-                n_plants = n_plants,
-                n_animals = n_animals,
-                prop_fungi = prop_fungi))
-}
-
-joined_gbif_data <- left_join(country_codes, gbif_data, by = "country_iso")
-write_csv(joined_gbif_data, "data/gbif_country_prop.csv")
-
-global_n_fungi <- occ_count(scientificName="Fungi")
-global_n_plants <- occ_count(scientificName="Plantae")
-global_n_animals <- occ_count(scientificName="Animalia")
-global_fungi_prop <- global_n_fungi / (global_n_fungi + global_n_plants + global_n_animals)
-        
-eu_n_fungi <- occ_count(scientificName="Fungi", continent = "europe")
-eu_n_plants <- occ_count(scientificName="Plantae", continent = "europe")
-eu_n_animals <- occ_count(scientificName="Animalia", continent = "europe")
-eu_fungi_prop <- eu_n_fungi / (eu_n_fungi + eu_n_plants + eu_n_animals)
-
-# get data from gbif
+# get data from gbif filtered by basis of record ----
 
 gbif_data_filtered <- data.frame(
         country_iso = character(),
@@ -100,7 +62,7 @@ for (i in country_codes$country_iso) {
 
 
 joined_gbif_data_filtered <- left_join(country_codes, gbif_data_filtered, by = "country_iso")
-write_csv(joined_gbif_data_filtered, "data/gbif_country_prop_filtered.csv")
+write_csv(joined_gbif_data_filtered, "data/gbif_country_prop.csv")
 
 # get global and european data (filtered) ----
 
@@ -124,3 +86,42 @@ gbif_data_global_europe <- data.frame(
 
 write_csv(gbif_data_global_europe, "data/gbif_prop_global_europe.csv")
 
+# # get data from gbif per country (not filtered)----
+# 
+# gbif_data <- data.frame(
+#         country_iso = character(),
+#         n_fungi = numeric(),
+#         n_plants = numeric(),
+#         n_animals = numeric(),
+#         prop_fungi = numeric())
+# 
+# for (i in country_codes$country_iso) {
+#         
+#         # count occurrences 
+#         n_fungi <- occ_count(scientificName = "Fungi", country = i)
+#         n_plants <- occ_count(scientificName = "Plantae", country = i)
+#         n_animals <- occ_count(scientificName = "Animalia", country = i)
+#         
+#         # calculate proportion of fungi
+#         prop_fungi <- n_fungi / (n_fungi + n_plants + n_animals)
+#         
+#         gbif_data <- rbind(gbif_data, data.frame(
+#                 country_iso = i,
+#                 n_fungi = n_fungi,
+#                 n_plants = n_plants,
+#                 n_animals = n_animals,
+#                 prop_fungi = prop_fungi))
+# }
+# 
+# joined_gbif_data <- left_join(country_codes, gbif_data, by = "country_iso")
+# write_csv(joined_gbif_data, "data/gbif_country_prop_not_filtered.csv")
+# 
+# global_n_fungi <- occ_count(scientificName="Fungi")
+# global_n_plants <- occ_count(scientificName="Plantae")
+# global_n_animals <- occ_count(scientificName="Animalia")
+# global_fungi_prop <- global_n_fungi / (global_n_fungi + global_n_plants + global_n_animals)
+#         
+# eu_n_fungi <- occ_count(scientificName="Fungi", continent = "europe")
+# eu_n_plants <- occ_count(scientificName="Plantae", continent = "europe")
+# eu_n_animals <- occ_count(scientificName="Animalia", continent = "europe")
+# eu_fungi_prop <- eu_n_fungi / (eu_n_fungi + eu_n_plants + eu_n_animals)

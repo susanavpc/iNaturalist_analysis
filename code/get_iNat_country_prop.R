@@ -186,7 +186,11 @@ iNat_data_counts_global <- data.frame(
         n_animals_verifiable = get_n_obs(taxon = animalia, verifiable = "true"),
         n_animals_all = get_n_obs(taxon = animalia, spam = "false"))
 
+
 iNat_region_counts <- rbind(iNat_data_counts_eu, iNat_data_counts_global)
+
+iNat_region_counts <- iNat_region_counts %>% 
+        mutate(prop_fungi_verifiable = n_fungi_verifiable / (n_fungi_verifiable + n_plants_verifiable + n_animals_verifiable))
 
 write_csv(iNat_region_counts, "data/iNat_prop_global_europe.csv")
 
