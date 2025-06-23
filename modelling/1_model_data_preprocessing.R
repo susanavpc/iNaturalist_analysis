@@ -124,10 +124,10 @@ tidy_data <- tidy_data %>%
 # ecdf(df %>% pull(n_photos)) (c(1,2,3,4,10,Inf))
 
                         
-save(tidy_data, file = "data/tidy_data_species_RG.RDS")                        
+save(tidy_data, file = "data/tidy_data/data_sp_RG_level.RData")                        
                
 ##filter data that has been identified to species level ----
 df <- tidy_data %>%
         filter(specificEpithet != "Not identified") 
 
-save(df, file = "data/data_species_level.RDS")
+save(df, file = "data/tidy_data/data_species_level.RData")
