@@ -34,6 +34,23 @@
 - Joins countries to other variables and saves final tidy_data file for verifiable observations only (Research and Needs ID)
 - Output: **"tidy_data_verifiable.csv"**
 
+### Modelling
+
+**"01_model_data_preprocessing.R"**
+- Mutates verifiable data to RG only at sp. level (e.g. RG at genus --> needs_id)
+- Creates variables needed for modelling 
+- Output: **"data_sp_RG_level.RData"** & **"data_species_level.RData"** (same as previous but only data at species level and below)
+
+**"02_modelling_final.R"**
+- Filters data data that has a chance at reaching RG : 30%RG, over 10 obs, over 10 RG obs
+- Model fits with glmmTB + AIC selection + Diagnostics 
+- Results from AIC selection in **"model_manual_drops.xlsx"**
+- Output: **"data_30perc.RData"**, **"model_final.RData"**
+
+**"03_model_plots.R"**
+- Model Interpretation with emmeans
+- Plotting 
+
 ### Additional Code
 
 **"get_iNat_country_prop.R"** 
@@ -48,14 +65,28 @@
 - Gets number of occurrences for plants, animals and fungi from GBIF and calculates proportion for fungi per country, at Europe level and globally
 - Input:"data_country_names.csv" (list of countries in dataset) & 
         "country_iso_codes.csv" (country iso codes downloaded from <https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv>)
-- Output:"gbif_country_prop.csv" &
-         "gbif_country_prop_filtered.csv" (filtered based of basis of record values) &
+- Output: "gbif_country_prop_filtered.csv" &
          "gbif_prop_global_europe.csv"
 - Date of download: 20 Jan 2025
+
+**"join_inat_gbif_proportion.R"**
+
+- Joins gbif and iNat fungi proportion data obtained through "get_gbif_country_prop.R" and "get_iNat_country_prop.R"
+- Keeps only verifiable data from iNaturalist
+- Output: "country_fungi_prop.csv" & "region_fungi_prop.csv"
 
 **"get_country_obser_iders.R"** 
 
 - Gets number of fungi observers and identifiers per country, Europe and globally 
 - Only includes observers and identifiers of verifiable observations
-- Cut-off date of 2024-06-26 (matches observations download)
+- Cut-off date: 26 June 2024 (matches observations download)
 - Input: "country_place_ids.csv"
+
+**"get_country_population.R"** 
+
+- Gets data country population data from United Nations World Population Prospects 2024 & edit values for European parts of Russia and Turkey
+- Input: "WPP2024_Demographic_Indicators_Medium.csv" & "gbif_country_prop_filtered.csv"
+- Output: "pop_data_countries.csv"
+
+
+
