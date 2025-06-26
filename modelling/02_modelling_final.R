@@ -1,7 +1,7 @@
 library(tidyverse)
 library(glmmTMB)
 library(DHARMa)
-
+library(gt)
 load("data/tidy_data/data_species_level.RData")
 
 ##filter data that has a chance at reaching RG : 30%RG, over 10 obs, over 10 RG, excluding prop==1 ----
@@ -190,7 +190,12 @@ rm(fit_no_tags_inter_genus)
 
 save(fit_no_tags_inter_genus_chr_month, file = "modelling/model_final.RData")
 
-# Diagnostics ####
+# Diagnostics ###
+
+res <- simulateResiduals(fittedModel = fit_no_tags_inter_genus_chr_month, plot = F)
+
+#res <- readRDS("modelling/DHARMa_fit_no_tags_inter_genus_chr_month.rds")
+load(file = "data/tidy_data/data_30perc.RData")
 
 plot(res)
 plotResiduals(res, data_30_test_month$Nph)
@@ -198,6 +203,66 @@ plotResiduals(res, data_30_test_month$Ntags)
 plotResiduals(res, data_30_test_month$presence_projects)
 plotResiduals(res, data_30_test_month$presence_obs_fields)
 plotResiduals(res, data_30_test_month$presence_notes)
+
+#get stats values
+testQuantiles(res)
+# Test for location of quantiles via qgam
+# 
+# data:  res
+# p-value < 2.2e-16
+# alternative hypothesis: both
+
+sig_values_Nph <- testCategorical(res, catPred = data_30_test_month$Nph)
+sig_values_Ntags <- testCategorical(res,data_30_test_month$Ntags)
+sig_values_proj <- testCategorical(res, catPred = data_30_test_month$presence_projects)
+sig_values_obsf <- testCategorical(res, catPred = data_30_test_month$presence_obs_fields)
+sig_values_notes <-testCategorical(res, catPred = data_30_test_month$presence_notes)
+
+sig_table_Nph <- data.frame(
+                group = c("1", "2", "3", "4", "5-10", ">10"),
+                D_stat = sapply(sig_values_Nph$uniformity$details, function(i) i$statistic[[1]]),
+                 p_value = sig_values_Nph $uniformity$p.value,
+              p_value_cor = sig_values_Nph $uniformity$p.value.cor)
+
+sig_table_Ntags <- data.frame(
+        group = c("0", "1", "2", "3", "4", "5", "6"),
+        D_stat = sapply(sig_values_Ntags$uniformity$details, function(i) i$statistic[[1]]),
+        p_value = sig_values_Ntags$uniformity$p.value,
+        p_value_cor = sig_values_Ntags$uniformity$p.value.cor)
+
+sig_table_proj <- data.frame(
+        group = c("0","1"),
+        D_stat = sapply(sig_values_proj$uniformity$details, function(i) i$statistic[[1]]),
+        p_value = sig_values_proj$uniformity$p.value,
+        p_value_cor = sig_values_proj$uniformity$p.value.cor)
+
+sig_table_obsf <- data.frame(
+        group = c("0","1"),
+        D_stat = sapply(sig_values_obsf$uniformity$details, function(i) i$statistic[[1]]),
+        p_value = sig_values_obsf$uniformity$p.value,
+        p_value_cor = sig_values_obsf$uniformity$p.value.cor)
+
+sig_table_notes <- data.frame(
+        group = c("0","1"),
+        D_stat = sapply(sig_values_notes$uniformity$details, function(i) i$statistic[[1]]),
+        p_value = sig_values_notes$uniformity$p.value,
+        p_value_cor = sig_values_notes$uniformity$p.value.cor)
+
+
+stats_table <- bind_rows(Nph = sig_table_Nph, 
+          Ntags = sig_table_Ntags, 
+          proj = sig_table_proj,
+          obsf = sig_table_obsf, 
+          notes = sig_table_notes, 
+          .id = "source")
+
+stats_table <- stats_table %>%  gt() %>% 
+        cols_label(
+                source = "Variable",
+                group = "Category")
+
+gtsave(stats_table, "modelling/diagnostic_plots_final_model/stats_table.pdf")
+
 
 #actual RG prop. of unique combinations of predictors vs fitted values
 data_downsampled <- data_30_test_month %>% group_by(log_ysu, Nph, presence_projects, presence_obs_fields, presence_notes, Ntags, n_info_no_notes, n_info_no_obsf, n_info_no_proj,genus, species) %>% count(rg) %>% 
