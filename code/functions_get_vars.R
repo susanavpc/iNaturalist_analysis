@@ -98,6 +98,17 @@ get_obs_fields <- function(i, dataset = obs){
         }
 }
 
+# get whether they have most used genetic obs fields
+get_genetic_obsf <- function(i, dataset = obs){
+        if (any(dataset$ofvs[[i]]$name == "DNA Barcode ITS" |  
+                dataset$ofvs[[i]]$name == "GenBank number (URL)" | 
+                dataset$ofvs[[i]]$name == "Genbank Accession Number")){
+                "yes"
+        } else {
+                "no"
+        }
+}
+
 
 # get number of tags
 get_n_tags <- function(i, dataset = obs){
@@ -121,6 +132,8 @@ get_microscopy_project <- function(i, dataset = obs){
                 "no"
         }
 }
+
+
 
 # get presence of notes
 get_presence_notes <- function(i, dataset = obs){

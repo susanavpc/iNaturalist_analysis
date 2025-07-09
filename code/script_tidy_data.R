@@ -18,6 +18,7 @@ for (i in 1:nrow(obs)) {
         sum_pixels <- get_sum_pixels(i)
         observer_taxon_rank <- get_observer_taxon_rank(i)
         observer_taxon_id <- get_observer_taxon_id(i)
+        genetic_obsf <- get_genetic_obsf(i)
         
         function_vars[[i]] <- data.frame(
                 id, 
@@ -34,7 +35,8 @@ for (i in 1:nrow(obs)) {
                 days_since_upload,
                 sum_pixels,
                 observer_taxon_rank,
-                observer_taxon_id)
+                observer_taxon_id,
+                genetic_obsf)
 }
 
 simple_vars <- obs %>% 
