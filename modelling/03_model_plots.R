@@ -484,7 +484,5 @@ plot_grid(grid, legend, ncol = 1, rel_heights = c(1, .1))
 
 #change to capital letters
 grid <- cowplot::plot_grid(plotlist = list(p1, p2, p3, p4, p5, p6),
-                           labels = "AUTO",
-                           label_size = 13, 
                            ncol =2)
 plot_grid(grid, legend, ncol = 1, rel_heights = c(1, .1))

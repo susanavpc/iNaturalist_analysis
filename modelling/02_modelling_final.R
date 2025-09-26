@@ -193,7 +193,7 @@ save(fit_no_tags_inter_genus_chr_month, file = "modelling/model_final.RData")
 # Diagnostics ###
 
 res <- simulateResiduals(fittedModel = fit_no_tags_inter_genus_chr_month, plot = F)
-
+#load(file="modelling/model_final.RData")
 #res <- readRDS("modelling/DHARMa_fit_no_tags_inter_genus_chr_month.rds")
 load(file = "data/tidy_data/data_30perc.RData")
 
@@ -265,25 +265,29 @@ gtsave(stats_table, "modelling/diagnostic_plots_final_model/stats_table.pdf")
 
 
 #actual RG prop. of unique combinations of predictors vs fitted values
-data_downsampled <- data_30_test_month %>% group_by(log_ysu, Nph, presence_projects, presence_obs_fields, presence_notes, Ntags, n_info_no_notes, n_info_no_obsf, n_info_no_proj,genus, species) %>% count(rg) %>% 
+data_downsampled <- data_30_test_month %>% 
+        group_by(log_ysu, Nph, presence_projects, presence_obs_fields, presence_notes, Ntags, n_info_no_notes, n_info_no_obsf, n_info_no_proj,genus, species) %>% 
+        count(rg) %>% 
         pivot_wider(names_from = "rg", values_from = "n", values_fill = 0) %>% 
         mutate(prop = `1`/(`0`+`1`)) %>% 
         mutate(observed_on_month="May")
+
 data_downsampled$fitted <- predict(fit_no_tags_inter_genus_chr_month, newdata=data_downsampled, 
-                                   type = "response" )
+                                   type = "response" ) # predicts response per grouping combination
+
 ggplot(data_30_test_month %>% left_join(data_downsampled %>% select(-observed_on_month)), aes(x=fitted, y=prop))+geom_point(aes(colour=Nph))+
         geom_smooth(method="lm")+
         geom_smooth(colour="red", se=FALSE)+
         geom_abline(intercept=0, slope=1)
 
 ggplot(data_30_test_month %>% left_join(data_downsampled), aes(x=fitted, y=prop))+
-        geom_point(aes(colour=Nph))+
+        geom_point(colour = "grey60", alpha = 0.5)+
         geom_smooth(method="lm")+
         geom_smooth(colour="red", se=FALSE)+
         geom_abline(intercept=0, slope=1) +
-        # scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
-        # scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
-        # coord_fixed()
+        #scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
+        #scale_y_continuous(limits = c(0, 1), expand = c(0, 0)) +
+        #coord_fixed()+
         theme_classic()
 
 # Joining with `by = join_by(observed_on_month, genus, presence_notes, species, log_ysu, presence_projects,
