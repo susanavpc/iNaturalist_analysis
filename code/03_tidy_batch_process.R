@@ -87,7 +87,11 @@ combined_data %>%
 combined_data <- combined_data %>% 
         mutate(across(kingdom:specificEpithet, ~ ifelse(is.na(.), "Not identified", .)))
 
-# Save dataset (includes casual observations) ----
+# Save dataset ----
 write_csv(combined_data,"data/tidy_data/combined_data.csv")
 
+tidy_data_verifiable <- combined_data %>% 
+        filter(quality_grade != "casual") 
+
+write_csv(tidy_data_verifiable, "data/tidy_data/tidy_data_verifiable.csv")
 

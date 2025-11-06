@@ -1,0 +1,3 @@
+region,n_fungi_research,n_fungi_needs_id,n_fungi_verifiable,n_fungi_all,n_plants_research,n_plants_needs_id,n_plants_verifiable,n_plants_all,n_animals_research,n_animals_needs_id,n_animals_verifiable,n_animals_all,prop_fungi_verifiable
+europe,1037379,1458012,2495391,2530660,11415818,5033368,16449186,18258329,14773116,5151179,19924295,21159777,0.06420024229156945
+global,3623186,8381488,12004674,12279666,48955722,29741459,78697181,90783254,72095275,30624486,102719761,108005124,0.06206480045125877
