@@ -1,5 +1,6 @@
 # iNaturalist_analysis
 
+Code used for data analysis in "Identifying drivers of iNaturalist fungal data quality to support conservation efforts"
 ## Code organisation
 
 ### Pre-processing
