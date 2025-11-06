@@ -8,3 +8,4 @@ temporary/
 data/processed_csvs/
 data/tidy_data/
 data/gadm
+NOT_FOR_GITHUB/

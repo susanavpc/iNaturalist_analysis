@@ -486,3 +486,33 @@ plot_grid(grid, legend, ncol = 1, rel_heights = c(1, .1))
 grid <- cowplot::plot_grid(plotlist = list(p1, p2, p3, p4, p5, p6),
                            ncol =2)
 plot_grid(grid, legend, ncol = 1, rel_heights = c(1, .1))
+
+
+##### Plots for n_tags, projects, etc
+
+# data_30_test_month %>% 
+#         filter(n_tags >0) %>% 
+ggplot(data_30_test_month, aes(x = n_tags))+
+        geom_bar()+
+        labs(x = "Number of tags", 
+             y = "Number of observations (log10)")+
+        scale_y_log10( expand = expansion(mult = c(0, 0.05)))+
+        cowplot::theme_cowplot(font_size = 13)
+
+
+data_30_test_month %>% 
+        filter(n_obs_fields >0) %>% 
+ggplot(aes(x = n_obs_fields))+
+        geom_bar()+
+        labs(x = "Number of observation fields", 
+             y = "Number of observations (log10)")+
+        scale_y_log10()+
+        geom_text(stat = "count", aes(label = after_stat(count), vjust = -1)) +
+        theme_minimal()
+
+data_30_test_month %>% 
+        filter(n_projects>0) %>% 
+ggplot(aes(x = n_projects))+
+        geom_bar()+
+        geom_text(stat = "count", aes(label = after_stat(count), vjust = -1)) +
+        theme_minimal()
