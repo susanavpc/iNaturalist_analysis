@@ -13,7 +13,7 @@ prop_RG <- mean(data_30_test_month$rg == 1)
 #0.6540829
 
 #overall expected probability based on emmeans grid
-overall_emm <- emmeans(fit_final,~1, weights = "cells", type = "response") %>% 
+overall_emm <- emmeans(fit_final,~1, weights = "cells", type = "response", re_formula = NA) %>% 
         as.data.frame() %>% 
         pull(prob[1])
 #0.6456797

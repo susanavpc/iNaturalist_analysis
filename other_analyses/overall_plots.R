@@ -132,6 +132,24 @@ cowplot::plot_grid(aligned[[1]], NULL, aligned[[2]], ncol = 3,rel_widths = c(1, 
 #### ccby ----
 tidy_data <- read_csv("data/tidy_data/tidy_data_verifiable.csv")
 
+#filter at species level & RG only at spp
+tidy_data <- tidy_data  %>%
+        
+        #filter out 0 photos obs (likely a bug) 
+        filter(!is.na(sum_pixels) & n_photos != 0) %>%
+        
+        mutate(
+                #make RG only at spp level, and numeric                
+                quality_sp_level = ifelse(quality_grade == "research" & specificEpithet == "Not identified", "needs_id", quality_grade), 
+                rg = as.numeric(quality_sp_level == "research"),
+                
+                #create column for species name 
+                species = as.factor(paste(genus, specificEpithet)),
+                
+                microscopy_project = as.factor(microscopy_project),
+                genus = as.factor(genus)) %>% 
+        filter(specificEpithet != "Not identified") 
+
 tidy_data %>% 
         filter(quality_grade == "research") %>% 
         mutate(license_code = ifelse(is.na(license_code), "not licensed", license_code)) %>% 
@@ -154,19 +172,6 @@ prop_cc_gbif <- tidy_data %>%
 
 ####microscopy project ----
 
-ggplot(data_30_test_month, aes(x = microscopy_project, fill = quality_grade)) +
-        geom_bar(position ="fill") +
-        scale_fill_manual(values = c(research= "#a8cc08", needs_id= "#ffee91",casual= "#aaaaaa"))+
-        labs(x = "Added to \"Mushroom microscopy\" project", 
-             y = "No. of Observations",
-             fill = "Quality Grade") +
-        scale_x_discrete(labels = c("needs_id" = "Needs ID",
-                                    "research" = "Research",
-                                    "casual" = "Casual"))+
-        #scale_y_continuous(labels = label_number(scale_cut = cut_short_scale()))+ #abbrev. numbers
-        theme_cowplot(font_size = 13) +
-        theme(axis.title.x = element_text(margin = margin(t = 12)),
-              axis.title.y = element_text(margin = margin(r = 10)))
 
 labels_microscopy <- tidy_data %>%
         count(microscopy_project)  
@@ -186,7 +191,28 @@ p1 <- ggplot(tidy_data, aes(x = microscopy_project, fill = quality_grade)) +
               axis.title.y = element_text(margin = margin(r = 10)),legend.position="none")+
         geom_text(data = labels_microscopy, aes(x = microscopy_project, y = 1.05, label = paste0("n = ", n)), inherit.aes = FALSE)
 
+
+####genetic fields ----
 tidy_data_obsf <- read_csv("data/tidy_data/tidy_data_genetic.csv")   
+
+#filtering out dataset to spp level
+tidy_data_obsf  <- tidy_data_obsf  %>%
+
+        #filter out 0 photos obs (likely a bug) 
+        filter(!is.na(sum_pixels) & n_photos != 0) %>%
+        
+        mutate(
+                #make RG only at spp level, and numeric                
+                quality_sp_level = ifelse(quality_grade == "research" & specificEpithet == "Not identified", "needs_id", quality_grade), 
+                rg = as.numeric(quality_sp_level == "research"),
+                
+                #create column for species name 
+                species = as.factor(paste(genus, specificEpithet)),
+                
+                microscopy_project = as.factor(microscopy_project),
+                genus = as.factor(genus)) %>% 
+        filter(specificEpithet != "Not identified") 
+
 
 labels_genetic <- tidy_data_obsf %>%
         count(genetic_obsf) 
