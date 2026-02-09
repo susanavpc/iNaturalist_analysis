@@ -155,6 +155,11 @@ tidy_data %>%
         mutate(license_code = ifelse(is.na(license_code), "not licensed", license_code)) %>% 
         ggplot(aes(x = fct_rev(fct_infreq(license_code)))) +
         geom_bar() +
+        geom_text(
+                aes(label = after_stat(count)),
+                stat = "count",
+                hjust = -0.1,
+                size = 3.5 ) +
         labs(x = "Licence Code", 
              y = "No. of Observations") +
         scale_y_continuous(labels = label_number())+

@@ -191,10 +191,9 @@ rm(fit_no_tags_inter_genus)
 save(fit_no_tags_inter_genus_chr_month, file = "modelling/model_final.RData")
 
 # Diagnostics ###
-
+set.seed(123)
 res <- simulateResiduals(fittedModel = fit_no_tags_inter_genus_chr_month, plot = F)
-#load(file="modelling/model_final.RData")
-#res <- readRDS("modelling/DHARMa_fit_no_tags_inter_genus_chr_month.rds")
+load(file="modelling/model_final.RData")
 load(file = "data/tidy_data/data_30perc.RData")
 
 plot(res)

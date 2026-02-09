@@ -1,6 +1,8 @@
 library(tidyverse)
 library(emmeans)
 library(glmmTMB)
+library(RColorBrewer)
+library(cowplot)
 
 load(file = "modelling/model_final.RData")
 fit_final <- fit_no_tags_inter_genus_chr_month; rm(fit_no_tags_inter_genus_chr_month)
