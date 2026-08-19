@@ -10,7 +10,7 @@
 
 library(tidyverse)
 
-source("code/functions_get_vars.R")
+source("data_processing/functions_get_vars.R")
 
 #Read in list of names of variables needed
 selected_variables <- read.csv("data/selected_variables.csv")$var_name 
@@ -22,7 +22,7 @@ file_list <- list.files(path=("data/raw"),
 #Loop through RData files, process obs object and save tidy_data csv files ----
 for (file in file_list) {
         load(file)
-        source("code/script_tidy_data.R")
+        source("data_processing/script_tidy_data.R")
         output_name <- sub("\\.RData$", ".csv", sub("obs", "tidy_data", file)) %>% 
                 basename()
         write_csv(tidy_data, paste0("data/processed_csvs/", output_name))

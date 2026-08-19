@@ -162,7 +162,14 @@ species_count_by_threshold <- map_dfr(thresholds, function(thresh) {
         # Summarize RG proportion per species
         species_summary <- df %>%
                 group_by(species) %>%
-                summarise(prop_RG = mean(rg), .groups = "drop")
+                summarise(n_obs = n(),
+                          n_rg = sum(rg == 1),
+                        prop_RG = mean(rg), .groups = "drop") %>% 
+                filter(
+                        n_obs >= 10,
+                        n_rg >= 10,
+                        prop_RG != 1
+                )
         
         # Count how many species meet the threshold
         count <- species_summary %>%
@@ -174,20 +181,37 @@ species_count_by_threshold <- map_dfr(thresholds, function(thresh) {
 })
 
 # Plot
-ggplot(species_count_by_threshold, aes(x = threshold, y = n_species)) +
+p_species <- ggplot(species_count_by_threshold, aes(x = threshold, y = n_species)) +
         geom_line() +
         geom_point() +
+        scale_y_continuous(
+                labels = scales::comma,
+                limits = c(0, NA),
+                expand = expansion(mult = c(0, 0.15)),   # small headroom
+                breaks = scales::breaks_extended(n = 3)
+        )+
+        geom_vline(xintercept = 0.3, linetype = "dashed", linewidth = 0.8, colour = "gray60") +
         labs(
                 x = "Minimum RG Prop. per Species",
-                y = "No.Species"
+                y = "No. Species"
         ) +
-        theme_cowplot()
+        theme_cowplot(font_size = 13)+
+        theme(axis.title.y = element_text(margin = margin(r = 12)),
+              axis.title.x = element_text(margin = margin(t = 12))
+        )
 
 obs_count_by_threshold <- map_dfr(thresholds, function(thresh) {
         # Compute %RG per species
         species_summary <- df %>%
                 group_by(species) %>%
-                summarise(prop_RG = mean(rg), .groups = "drop")
+                summarise(n_obs = n(),
+                          n_rg = sum(rg == 1),
+                          prop_RG = mean(rg), .groups = "drop") %>% 
+                filter(
+                        n_obs >= 10,
+                        n_rg >= 10,
+                        prop_RG != 1
+                )
         
         # Filter species meeting the threshold
         selected_species <- species_summary %>%
@@ -205,15 +229,26 @@ obs_count_by_threshold <- map_dfr(thresholds, function(thresh) {
 })
 
 # Plot
-ggplot(obs_count_by_threshold, aes(x = threshold, y = n_obs)) +
+p_obs<- ggplot(obs_count_by_threshold, aes(x = threshold, y = n_obs)) +
         geom_line() +
         geom_point() +
+        scale_y_continuous(
+                labels = scales::comma,
+                limits = c(0, NA),
+                expand = expansion(mult = c(0, 0.05)),   # small headroom
+                breaks = scales::breaks_extended(n = 5)
+        )+
+        geom_vline(xintercept = 0.3, linetype = "dashed", linewidth = 0.8, colour = "gray60") +
         labs(
                 x = " Minimum RG Prop. per Species",
                 y = "No. Observations"
         ) +
-        theme_cowplot()
+        theme_cowplot(font_size = 13)+
+        theme(axis.title.y = element_text(margin = margin(r = 12)),
+              axis.title.x = element_text(margin = margin(t = 12))
+        )
 
+plot_grid(p_obs, p_species, ncol = 1, align = "v")
 
 ### Exploring observations with a lot of tags ----
 

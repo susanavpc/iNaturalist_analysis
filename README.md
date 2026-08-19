@@ -1,6 +1,7 @@
 # iNaturalist_analysis
 
-Code used for data analysis in "Identifying drivers of iNaturalist fungal data quality to support conservation efforts"
+Code used for data processing and analysis for the manuscript "Well-documented iNaturalist fungal observations result in higher-quality data for research and conservation"
+
 ## Code organisation
 
 ### Pre-processing
@@ -49,21 +50,6 @@ Code used for data analysis in "Identifying drivers of iNaturalist fungal data q
 
 ### Other analysis
 
-**"get_iNat_country_prop.R"** 
-- Gets number of occurrences for plants, animals and fungi from iNaturalist data and calculates proportion for fungi per country, at Europe level and globally
-- Initial API call is used to get place ID from country names in dataset followed by call to get number of observations
-- API call for n_observations at European level and global
-- Input: "data_country_names.csv" (list of countries in dataset)
-- Output: "iNat_country_prop.csv" & "iNat_prop_global_europe.csv" & "country_place_ids.csv"
-- Cut-off date: 26 June 2024 (matches observations dataset download)
-
-**"get_gbif_country_prop.R"** 
-- Gets number of occurrences for plants, animals and fungi from GBIF and calculates proportion for fungi per country, at Europe level and globally
-- Input:"data_country_names.csv" (list of countries in dataset) & 
-        "country_iso_codes.csv" (country iso codes downloaded from <https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.csv>)
-- Output: "gbif_country_prop_filtered.csv" &
-         "gbif_prop_global_europe.csv"
-- Date of download: 20 Jan 2025
 
 **"sankey_rank_flow"** 
 - Code for sankey plot

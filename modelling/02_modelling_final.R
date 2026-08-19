@@ -21,6 +21,7 @@ data_30_test_month <- df %>%
 
 rm(df, species_counts)
 
+unique(data_30_test_month$species) %>% length() #2309
 
 ##full model ----
 

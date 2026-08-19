@@ -1,4 +1,4 @@
-# Functions to calculate variables needed 
+# Functions to calculate variables needed (not all were used in the end)
 
 #get sum of number of pixels for all photos in observation
 get_sum_pixels <- function(i, dataset = obs){
