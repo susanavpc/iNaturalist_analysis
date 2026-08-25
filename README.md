@@ -23,7 +23,7 @@ Code used for data processing and analysis for the manuscript "Well-documented i
 **"03_tidy_batch_process.R"**
 - processes and joins page RData files to get variables needed for analysis, using **"functions_get_vars.R"**, **"script_tidy_data.R"** and "selected_variables.csv"
 - adds taxonomic data fixes taxonomic issues, using "inat_fungi_taxa.csv" and "taxon_swap_mapping.csv"
-- Output: **"combined_data.csv"** (includes Research Grade, Needs ID and Casual observations) 
+- Output: **"combined_data.csv"** (includes Research Grade, Needs ID and Casual observations) and **"tidy_data_verifiable.csv"** (no casual)
 
 **"04_retrieve_genetic_variables.R"**
 - retrieve genetic fields data
