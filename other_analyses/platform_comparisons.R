@@ -3,6 +3,8 @@ library(rgbif)
 library(sf)
 library(rnaturalearth)
 library(readxl)
+library(scales)
+library(cowplot)
 
 cutoff_date <- "2024-06-24"
 
@@ -170,3 +172,17 @@ ggplot(df_long, aes(x = Platform, y = n_obs)) +
         ) +
         theme_cowplot(font_size = 14)+
         theme(legend.position = "none")
+
+
+df_long %>% 
+        filter(metric == "Before download cutoff date") %>% 
+        filter(Platform != "PlutoF Go") %>% 
+                ggplot(aes(x = Platform, y = n_obs)) +
+                        geom_col() +
+                        scale_y_continuous(labels = label_comma(),
+                                           expand = expansion(mult = c(0, 0.05))) +
+                        labs(
+                                x = NULL, y = "No.observations",
+                        ) +
+                        theme_cowplot(font_size = 14)+
+                        theme(legend.position = "none")
