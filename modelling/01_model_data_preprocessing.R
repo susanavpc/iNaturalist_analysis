@@ -3,7 +3,7 @@ library(glmmTMB)
 library(DHARMa)
 library(sjPlot)
 
-tidy_data <- read_csv("data/tidy_data/tidy_data_verifiable.csv")
+load("data/tidy_data/tidy_data_verifiable.RData")
 
 #data processing for RG at spp level ----
 tidy_data <- tidy_data %>%
