@@ -1,3 +1,4 @@
+# check which phyla are represented in the final modelling dataset
 library(tidyverse)
 
 load(file = "data/tidy_data/data_30perc.RData")
@@ -12,9 +13,9 @@ ggplot(data_30_test_month,aes(x = fct_infreq(phylum), fill= phylum))+
         scale_y_log10(labels = scales::label_number())
 
 
+#read in GBIF's fungal taxa in europe - data downloaded from GBIF.org (22 September 2026) GBIF Occurrence Download https://doi.org/10.15468/dl.k2qdfb
+fungi_gbif <- read_tsv( "data/GBIF_europe_fungal_taxa_sep_2026.csv", show_col_types = FALSE)
 
-fungi_gbif <- read_tsv( "data/GBIF_europe_fungal_taxa_sep_2026.csv", show_col_types = FALSE) #data downloaded from GBIF.org (22 September 2026) GBIF Occurrence Download https://doi.org/10.15468/dl.k2qdfb
-unique(fungi_gbif$phylum)
 
 unique(fungi_gbif$phylum)
 
