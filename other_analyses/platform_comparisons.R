@@ -28,7 +28,7 @@ nrow(st_coordinates(gbif_raw))
 
 sf_use_s2(FALSE)
 gbif_simplified <- st_simplify(gbif_raw, dTolerance = 0.01, preserveTopology = TRUE)
-sf_use_s2(TRUE)
+
 
 nrow(st_coordinates(gbif_simplified ))
 #1582
@@ -102,6 +102,7 @@ data <- dat_raw %>%
 
 saveRDS(data, "data/data_gbif_comparison/fungi_europe_clean.rds")
 
+data <- readRDS( "data/data_gbif_comparison/fungi_europe_clean.rds")
 # Plot maps ----
 
 #change projection to fit Europe better (EPSG:3035)
@@ -124,23 +125,39 @@ europe_boundary_sf <- st_as_sfc(europe_wkt, crs = 4326) %>%
 europe_basemap_clipped <- europe_basemap %>%
         st_make_valid() %>%
         st_intersection(europe_boundary_sf)
-
-ggplot() +
+w <- 100000  
+p <- ggplot() +
         geom_sf(data = europe_basemap_clipped, fill = "grey95", colour = "grey70", linewidth = 0.2) +
         stat_bin_hex(
                 data = data_plot, aes(x = X, y = Y),
-                bins = 60, alpha = 0.9
+                binwidth = c(w,w) , alpha = 0.9
         ) +
         scale_fill_viridis_c(trans = "log10", 
                              labels = label_comma(), 
                              name = "No. observations") +
-        coord_sf(crs = 3035, datum = NA) +   # datum = NA drops the lon/lat grid, which isn't meaningful in a projected view
+        coord_sf(crs = 3035, datum = NA, clip = "off") +   # datum = NA drops the lon/lat grid, which isn't meaningful in a projected view
         facet_wrap(~publisher, ncol = 3) +
         theme_minimal(base_size = 14) +
+        annotation_scale(
+                data = data.frame(publisher = "Observation.org"),  # use one of your actual publisher levels
+                location = "br", width_hint = 0.2, style = "ticks", text_cex = 0.7, pad_y = unit(-0.4, "cm") 
+        )+
         theme(axis.title = element_blank(),
               legend.position = "bottom")
               #panel.border = element_rect(colour = "grey40", fill = NA, linewidth = 0.4))
 
+
+#check of hexagon size
+d <- layer_data(p)
+d <- d[d$PANEL == 1, ]
+
+
+# centre spacing within a single row (flat-to-flat width)
+row1 <- d$x[d$y == d$y[100]]
+min(diff(sort(row1)))        # should be 100000
+
+# spacing between rows (should be w * sqrt(3)/2 ≈ 86,603)
+min(diff(sort(unique(round(d$y)))))   
 # Plot n_obs comparison between platforms  ----
 
 df <- read_excel("data/platform_comparison.xlsx", sheet = "Sheet1")
