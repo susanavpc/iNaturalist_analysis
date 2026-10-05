@@ -1,6 +1,6 @@
 # iNaturalist_analysis
 
-Code used for data processing and analysis for the manuscript "Well-documented iNaturalist fungal observations result in higher-quality data for research and conservation"
+Code used for data processing and analysis for the manuscript "Well-documented iNaturalist fungal observations are more likely to reach identification consensus for use in biodiversity research and conservation".
 
 ## Code organisation
 
